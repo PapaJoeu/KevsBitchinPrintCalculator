@@ -393,21 +393,21 @@ function displayProgramSequence(layout) {
 }
 
 function calculateProgramSequence(layout) {
-    let sequence = [];
+    let programSequence = [];
 
     // Add initial measurements for the sheet length and width
-    sequence.push({ measurement: layout.sheetLength - layout.topMargin });
-    sequence.push({ measurement: layout.sheetWidth - layout.leftMargin });
+    programSequence.push({ measurement: layout.sheetLength - layout.topMargin });
+    programSequence.push({ measurement: layout.sheetWidth - layout.leftMargin });
 
     // Add measurements for the imposed space length and width
-    sequence.push({ measurement: layout.imposedSpaceLength });
-    sequence.push({ measurement: layout.imposedSpaceWidth });
+    programSequence.push({ measurement: layout.imposedSpaceLength });
+    programSequence.push({ measurement: layout.imposedSpaceWidth });
 
     // Helper function to add measurements to the sequence
     // TODO: make it skip the repeated measurements if the gutter is 0
     const addMeasurements = (count, measurement, decrement) => {
         for (let i = 1; i < count; i++) {
-            sequence.push({ measurement: measurement - i * decrement });
+            programSequence.push({ measurement: measurement - i * decrement });
         }
     };
 
@@ -417,7 +417,7 @@ function calculateProgramSequence(layout) {
     addMeasurements(layout.docsDown, layout.imposedSpaceLength, layout.docLength + layout.gutterLength);
     addMeasurements(layout.docsDown, layout.docLength, 0);
 
-    return sequence;
+    return programSequence;
 }
 
 function displayMiscDetails(layout) {
