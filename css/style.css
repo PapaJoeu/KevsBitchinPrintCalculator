@@ -1,0 +1,235 @@
+/* style.css */
+
+/* CSS Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Root Variables for Theming */
+:root {
+    --primary-color: #000080;
+    --secondary-color: #c0c0c0;
+    --text-color: #000;
+    --background-color: #f0f0f0;
+    --font-family: 'Tahoma', 'Verdana', sans-serif;
+    --border-color: #000;
+    --border-radius: 4px;
+    --transition-duration: 0.3s;
+}
+
+/* General Styles */
+body {
+    font-family: var(--font-family);
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+/* Container */
+.container {
+    max-width: 2000px;
+    margin: auto;
+    padding: 20px;
+}
+
+/* Header Styles */
+header {
+    text-align: center;
+    background-color: var(--primary-color);
+    padding: 20px;
+    color: #fff;
+}
+
+header h1 {
+    font-size: 1rem;
+    margin-bottom: 1px;
+}
+
+#unitToggleButton {
+    padding: 10px 20px;
+    font-size: 1rem;
+    background-color: #fff;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: background-color var(--transition-duration), color var(--transition-duration);
+}
+
+#unitToggleButton:hover {
+    background-color: var(--primary-color);
+    color: #fff;
+}
+
+/* Main Content */
+main {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+/* Columns */
+.left-column,
+.right-column {
+    flex: 1 1 600px;
+}
+
+@media (max-width: 700x) {
+    .left-column,
+    .right-column {
+        flex: 1 1 100%;
+    }
+}
+
+/* Sections */
+section {
+    margin-bottom: 30px;
+}
+
+section h2 {
+    font-size: 1rem;
+    color: var(--primary-color);
+    margin-bottom: 15px;
+}
+
+/* Button Grids */
+.button-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.button-grid button {
+    flex: 1 1 calc(33.333% - 75px);
+    padding: 12px;
+    font-size: 1rem;
+    background-color: #fff;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: background-color var(--transition-duration), color var(--transition-duration);
+}
+
+.button-grid button:hover,
+.button-grid button.active {
+    background-color: var(--primary-color);
+    color: #fff;
+}
+
+/* Input Groups */
+.input-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.input-group label {
+    flex: 1 1 150px;
+    font-size: 1rem;
+}
+
+.input-group input[type="number"] {
+    flex: 1 1 100px;
+    padding: 8px;
+    font-size: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+}
+
+.input-group span {
+    font-size: 1rem;
+}
+
+/* Control Buttons */
+.control-buttons button,
+.score-buttons button {
+    flex: 1 1 calc(33.333% - 10px);
+    padding: 12px;
+    font-size: 1rem;
+    background-color: #fff;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: background-color var(--transition-duration), color var(--transition-duration);
+}
+
+.control-buttons button:hover,
+.score-buttons button:hover,
+.control-buttons button.active,
+.score-buttons button.active {
+    background-color: var(--primary-color);
+    color: #fff;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 900px) {
+    .button-grid button,
+    .control-buttons button,
+    .score-buttons button {
+        flex: 1 2 calc(50% - 10px);
+    }
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+th,
+td {
+    border: 1px solid var(--border-color);
+    padding: 10px;
+    text-align: left;
+    font-size: 1rem;
+}
+
+th {
+    background-color: var(--primary-color);
+    color: #fff;
+}
+
+td {
+    background-color: #fff;
+}
+
+/* Canvas */
+.visualizer-section {
+    width: 100%;
+}
+
+#layoutCanvas {
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background-color: #fff;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 20px;
+    font-size: 0.875rem;
+    color: var(--text-color);
+}
+
+/* Accessibility Focus */
+button:focus,
+input:focus {
+    outline: 2px dashed var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Hidden Elements */
+.hidden {
+    display: none;
+}

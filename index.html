@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <title>Kev's Bitchin' Print Calculator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta description="Kev's Bitchin' Print Calculator - A tool for print production calculations in Windows 98 style.">
+    <link rel="icon" href="assets/favicon.ico" type="image/x-icon">
+    <!-- External CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Header Section -->
+        <header>
+            <h1>Kev's Bitchin' Print Calculator</h1>
+            <!-- Unit Toggle Button -->
+            <button type="button" id="unitToggleButton">Switch to Metric</button>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <!-- Left Column -->
+            <div class="left-column">
+                <!-- Sheet Dimensions Section -->
+                <section class="dimensions-section">
+                    <h2>Sheet Dimensions</h2>
+                    <!-- Sheet Size Buttons -->
+                    <div class="button-grid" id="sheetButtonsContainer"></div>
+                    <!-- Custom Sheet Size Inputs -->
+                    <div class="input-group hidden" id="sheetDimensionsInputs">
+                        <label for="sheetWidth">Width:</label>
+                        <input type="number" id="sheetWidth" name="sheetWidth" step="0.25" value="12.0">
+                        <span>x</span>
+                        <label for="sheetLength">Length:</label>
+                        <input type="number" id="sheetLength" name="sheetLength" step="0.25" value="18.0">
+                    </div>
+                </section>
+
+                <!-- Document Dimensions Section -->
+                <section class="dimensions-section">
+                    <h2>Document Dimensions</h2>
+                    <!-- Document Size Buttons -->
+                    <div class="button-grid" id="docButtonsContainer"></div>
+                    <!-- Custom Document Size Inputs -->
+                    <div class="input-group hidden" id="docDimensionsInputs">
+                        <label for="docWidth">Width:</label>
+                        <input type="number" id="docWidth" name="docWidth" step="0.25" value="3.5">
+                        <span>x</span>
+                        <label for="docLength">Length:</label>
+                        <input type="number" id="docLength" name="docLength" step="0.25" value="2.0">
+                    </div>
+                </section>
+
+                <!-- Gutter Sizes Section -->
+                <section class="dimensions-section">
+                    <h2>Gutter Sizes</h2>
+                    <!-- Gutter Size Buttons -->
+                    <div class="button-grid" id="gutterButtonsContainer"></div>
+                    <!-- Custom Gutter Size Inputs -->
+                    <div class="input-group hidden" id="gutterDimensionsInputs">
+                        <label for="gutterWidth">Gutter Width:</label>
+                        <input type="number" id="gutterWidth" name="gutterWidth" step="0.125" value="0.125">
+                        <span>x</span>
+                        <label for="gutterLength">Gutter Length:</label>
+                        <input type="number" id="gutterLength" name="gutterLength" step="0.125" value="0.125">
+                    </div>
+                </section>
+
+                <!-- Visualizer Section -->
+                <section class="visualizer-section">
+                    <h2>Layout Visualizer</h2>
+                    <!-- Canvas Element -->
+                    <canvas id="layoutCanvas"></canvas>
+                </section>
+
+                <!-- Rotate Buttons -->
+                <section class="control-section">
+                    <div class="button-grid control-buttons">
+                        <button type="button" id="rotateDocsButton">Rotate Docs</button>
+                        <button type="button" id="rotateSheetButton">Rotate Sheet</button>
+                        <button type="button" id="rotateDocsAndSheetButton">Rotate Docs and Sheet</button>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Right Column (Visualizer) -->
+            <div class="right-column">
+
+                <!-- Program Sequence Section -->
+                <section id="programSequenceSection">
+                    <h2>Program Sequence</h2>
+                    <div id="programSequence"></div>
+                </section>
+
+                <!-- Cuts Section -->
+                <section id="cutsSection">
+                    <h2>Cuts and Slits</h2>
+                    <div id="cutsList"></div>
+                </section>
+
+                <!-- Misc Data Section -->
+                <section id="miscDataSection">
+                    <h2>Misc Data</h2>
+                    <!-- Layout Details Display -->
+                    <div id="layoutDetails"></div>
+                </section>
+
+                <!-- Score Section -->
+                <section id="scoreSection">
+                    <h2>Scores</h2>
+                    <div class="button-grid score-buttons">
+                        <button type="button" id="addBifoldButton">Add Bifold Score</button>
+                        <button type="button" id="addCustomScoreButton">Add Custom Score</button>
+                        <button type="button" id="clearScoresButton">Clear Scores</button>
+                    </div>
+                    <!-- Custom Score Input (Initially Hidden) -->
+                    <div id="customScoreInput" class="input-group hidden">
+                        <label for="customScorePosition">Custom Score Offset (from edge):</label>
+                        <input type="number" id="customScorePosition" name="customScorePosition" step="0.01">
+                        <button type="button" id="submitCustomScoreButton">Submit</button>
+                    </div>
+                    <!-- Score Positions Display -->
+                    <div id="scorePositions"></div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Footer Section -->
+        <footer>
+            <p>&copy; 2024 Kev's Bitchin' Print Calculator. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <!-- External JavaScript Modules -->
+    <script type="module" src="/js/app.js"></script>
+</body>
+</html>
