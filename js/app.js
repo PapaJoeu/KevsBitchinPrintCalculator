@@ -417,7 +417,8 @@ function calculateProgramSequence(layout) {
 
 function displayMiscDetails(layout) {
     const totalDocuments = layout.docsAcross * layout.docsDown;
-    const totalCuts = (layout.docsAcross - 1) + (layout.docsDown - 1);
+    const sequence = calculateProgramSequence(layout); // Calculate the program sequence
+    const totalCuts = sequence.length; 
     const efficiency =
         ((layout.imposedSpaceWidth * layout.imposedSpaceLength) / (layout.sheetWidth * layout.sheetLength)) * 100;
 
