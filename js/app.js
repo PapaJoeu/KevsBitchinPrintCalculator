@@ -335,23 +335,28 @@ function calculateCutsAndSlits(layout) {
         docsDown,
     } = layout;
 
+    // Use Sets to avoid duplicate cut positions
     const horizontalCuts = new Set();
     const verticalCuts = new Set();
 
+    // Calculate vertical cut positions
     for (let i = 0; i <= docsAcross; i++) {
         const x = leftMargin + i * (docWidth + gutterWidth) - (i === docsAcross ? gutterWidth : 0);
         verticalCuts.add(x);
     }
 
+    // Calculate horizontal cut positions
     for (let j = 0; j <= docsDown; j++) {
         const y = topMargin + j * (docLength + gutterLength) - (j === docsDown ? gutterLength : 0);
         horizontalCuts.add(y);
     }
 
+    // Add vertical cuts to the cuts array
     verticalCuts.forEach((position) => {
         cuts.push({ direction: 'Vertical', position });
     });
 
+    // Add horizontal cuts to the cuts array
     horizontalCuts.forEach((position) => {
         cuts.push({ direction: 'Horizontal', position });
     });
