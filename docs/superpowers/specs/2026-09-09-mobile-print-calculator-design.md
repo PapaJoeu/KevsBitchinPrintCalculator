@@ -148,8 +148,67 @@ Single scrolling column, thumb-reachable:
 - **Turns are the visual anchor.** Every axis change gets a full-width band reading
   `TURN STACK 90°`. Missing a turn ruins the job, so it is not a subtle icon.
 - Live recalculation on every input change. No calculate button.
+- A fold-style control — off, bifold, trifold, z-fold, plus custom offsets — sits
+  between the inputs and the visualizer. Off is the default, and selecting a style
+  updates both the score list and the visualizer live.
 
 Jobs are entered fresh each time; the default state is the business card job.
+
+#### Visualizer
+
+**Goal: a confirmation glance, not a workspace.** The numbers are the deliverable;
+the visualizer exists so a worker can tell in one look that the imposition matches
+the job in their hands — right orientation, right count, folds where expected —
+and catch a mistyped dimension before making an expensive cut. Everything below
+follows from that.
+
+**Placement and size.** Directly above the program sequence, so scrolling from
+inputs to sequence passes through it. It is sized to fit fully on screen without
+scrolling, capped at roughly 40% of viewport height, rather than sized by sheet
+aspect ratio as it is now — a 12x18 sheet must not push the sequence below the
+fold. The sheet is centered in the available box at whatever scale fits, with the
+full sheet always visible. No panning, no zooming, no tapping parts.
+
+**Rendering.** Canvas, sized for `devicePixelRatio` so it is sharp on phones — the
+current implementation sizes from `clientWidth` alone and renders soft on every
+device. Redrawn on input change and on resize or orientation change.
+
+**What is drawn, in the 98 palette:**
+
+- **Sheet** — white fill, one-pixel black border, with a subtle drop shadow to
+  read as paper.
+- **Documents** — filled panels with a blue border, clearly distinct from the
+  sheet's white margin so the imposed block reads at a glance.
+- **Gutters** — the space between documents, left as sheet-coloured. With a 1/8"
+  gutter at phone scale this is roughly a pixel, so gutters are shown as gaps
+  rather than labelled.
+- **Document numbers** — retained, but drawn only when the scaled document is
+  large enough to fit legible text. A 24-up business card sheet at phone size
+  cannot carry 24 numbers, so labels are dropped rather than rendered as unreadable
+  specks.
+- **Orientation marker** — a small indicator of the sheet's grain or feed edge, so
+  a rotated result is unmistakable.
+
+**Scores and folds.** When a fold style is active, scores are drawn **on the
+documents they belong to**, not as full-sheet rules — the current code spans every
+score edge-to-edge across margins and gutters, which misrepresents where the score
+actually falls. Each score is a dashed magenta line across its own document only.
+
+- Scores run **perpendicular to the fold axis**, so both horizontal and vertical
+  folds render correctly. The current implementation can only draw horizontal
+  scores.
+- Every score on every document is drawn, so a trifold on a 24-up sheet shows all
+  48 score lines — this is what makes a wrong fold axis obvious immediately.
+- Score lines sit above the document fill and are visually distinct from cut lines:
+  **dashed magenta for scores, solid blue for document edges**, so a worker never
+  confuses a fold with a trim.
+- When no fold style is selected, no score lines are drawn and the visualizer is
+  unchanged.
+
+**Legend.** A compact legend beneath the canvas naming the two line treatments
+(document edge, score line), shown only when scores are active. Colour alone must
+not carry the distinction — the dash pattern does the work for anyone who cannot
+separate blue from magenta under shop lighting.
 
 ### Styling
 
@@ -165,8 +224,8 @@ hard-edged bevels stay legible at small sizes where gradients turn to mush.
   borders, no border radius and no transitions.
 - **Group boxes** with the etched inset frame and a label breaking the top border,
   replacing the current plain headings.
-- **A title bar** with the gradient, inset title text, and the boxy control
-  buttons.
+- **A title bar** in flat navy with white bold title text and the boxy control
+  buttons. (98 used a solid fill; the gradient belongs to later styles.)
 - **MS Sans Serif / Tahoma**, with a stack falling back to a system sans.
 
 Adapted for touch:
