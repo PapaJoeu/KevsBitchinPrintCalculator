@@ -43,7 +43,7 @@ export function createSizeInputs(container, { label, allowZero = false, onChange
     const buttons = presets.map((preset) => {
       const button = el('button', { type: 'button', 'aria-pressed': 'false' }, chipText(preset));
       button.addEventListener('click', () => {
-        value = preset;
+        value = { ...preset };
         press(button);
         showCustom(false);
         hint.hidden = true;

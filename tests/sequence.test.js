@@ -72,6 +72,14 @@ test('a zero gutter needs no trims: the ladder alone separates the pieces', () =
   assert.deepEqual(cuts(steps), [['L', 11], ['W', 8.5], ['L', 11], ['W', 8.5], ['W', 4.25], ['L', 5.5]]);
 });
 
+test('each axis uses its own gutter: a 1/4" side gutter with no gutter between rows', () => {
+  const steps = computeSequence(computeLayout(size(12, 18), size(3.5, 2), size(0.25, 0)));
+  // 3 columns separated by a 1/4" gutter need trims; 9 rows with no gutter need none.
+  assert.equal(steps.filter((s) => s.axis === 'W' && s.kind === 'trim').length, 2);
+  assert.equal(steps.filter((s) => s.axis === 'L' && s.kind === 'trim').length, 0);
+  assert.deepEqual(cuts(steps).slice(4, 8), [['W', 7.25], ['W', 3.5], ['W', 3.5], ['W', 3.5]]);
+});
+
 test('refuses a layout that does not fit', () => {
   assert.throws(() => computeSequence(computeLayout(size(12, 18), size(13, 2), EIGHTH)), RangeError);
 });

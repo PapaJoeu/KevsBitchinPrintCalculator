@@ -74,6 +74,9 @@ function update(patch) {
 
 /** Turn the sheet or document 90°. An external change, so it is echoed into the section. */
 function applyRotation(which) {
+  // state.fold.axis is deliberately left alone: it names a sheet-relative direction
+  // ('L' along the sheet length, 'W' along the width), not a direction relative to
+  // this document, so rotating the document does not change what the axis means.
   const turned = { width: state[which].length, length: state[which].width };
   sections[which].setValue(turned);
   update({ [which]: turned });

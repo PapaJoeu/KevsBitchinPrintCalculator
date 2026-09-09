@@ -80,27 +80,41 @@ export function createVisualizer(canvas) {
     ctx.restore();
 
     if (layout.fits) {
-      const label = canLabel(layout.doc.width * scale, layout.doc.length * scale);
-      ctx.font = `${Math.min(12, Math.max(9, (layout.doc.length * scale) / 3))}px Tahoma, sans-serif`;
-      ctx.textBaseline = 'middle';
-      layout.docs.forEach((d, i) => {
-        const x = X(d.x);
-        const y = Y(d.y);
-        const w = d.width * scale;
-        const l = d.length * scale;
+      // Past a few thousand, each document is sub-pixel anyway — draw the imposed
+      // block as one rect so a mistyped size degrades the preview instead of
+      // freezing the page.
+      if (layout.docs.length > 5000) {
         ctx.fillStyle = PALETTE.doc;
-        ctx.fillRect(x, y, w, l);
+        ctx.fillRect(X(layout.margins.left), Y(layout.margins.top),
+                     layout.imposed.width * scale, layout.imposed.length * scale);
         ctx.strokeStyle = PALETTE.docEdge;
-        ctx.strokeRect(x + 0.5, y + 0.5, w - 1, l - 1);
-        if (label) {
-          ctx.fillStyle = PALETTE.docEdge;
-          ctx.fillText(String(i + 1), x + w / 2, y + l / 2);
-        }
-      });
+        ctx.strokeRect(X(layout.margins.left) + 0.5, Y(layout.margins.top) + 0.5,
+                       layout.imposed.width * scale - 1, layout.imposed.length * scale - 1);
+      } else {
+        const label = canLabel(layout.doc.width * scale, layout.doc.length * scale);
+        ctx.font = `${Math.min(12, Math.max(9, (layout.doc.length * scale) / 3))}px Tahoma, sans-serif`;
+        ctx.textBaseline = 'middle';
+        layout.docs.forEach((d, i) => {
+          const x = X(d.x);
+          const y = Y(d.y);
+          const w = d.width * scale;
+          const l = d.length * scale;
+          ctx.fillStyle = PALETTE.doc;
+          ctx.fillRect(x, y, w, l);
+          ctx.strokeStyle = PALETTE.docEdge;
+          ctx.strokeRect(x + 0.5, y + 0.5, w - 1, l - 1);
+          if (label) {
+            ctx.fillStyle = PALETTE.docEdge;
+            ctx.fillText(String(i + 1), x + w / 2, y + l / 2);
+          }
+        });
+      }
     }
 
-    // Scores: dashed magenta on each document, above the fill.
-    if (scores.segments.length > 0) {
+    // Scores: dashed magenta on each document, above the fill. Same document-count
+    // guard as above: past the threshold, segments explode along with docs, and
+    // building/stroking a multi-million-point path is its own freeze risk.
+    if (scores.segments.length > 0 && layout.docs.length <= 5000) {
       ctx.save();
       ctx.strokeStyle = PALETTE.score;
       ctx.lineWidth = 1.5;
