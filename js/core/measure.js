@@ -2,8 +2,8 @@
 
 export const MM_PER_INCH = 25.4;
 
-export const inchesToMm = (inches) => Math.round(inches * MM_PER_INCH * 10000) / 10000;
-export const mmToInches = (mm) => Math.round(mm / MM_PER_INCH * 10000) / 10000;
+export const inchesToMm = (inches) => inches * MM_PER_INCH;
+export const mmToInches = (mm) => mm / MM_PER_INCH;
 
 const DECIMAL = /^(?:\d+\.?\d*|\.\d+)$/;
 const FRACTION = /^(\d+)\/(\d+)$/;

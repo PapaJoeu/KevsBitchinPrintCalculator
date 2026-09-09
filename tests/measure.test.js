@@ -28,5 +28,5 @@ test('rejects text that is not a measurement', () => {
 test('converts between inches and millimetres', () => {
   assert.equal(inchesToMm(1), 25.4);
   assert.equal(mmToInches(25.4), 1);
-  assert.equal(inchesToMm(12), 304.8);
+  assert.ok(Math.abs(inchesToMm(12) - 304.8) < 1e-9, `${inchesToMm(12)} != 304.8`);
 });
