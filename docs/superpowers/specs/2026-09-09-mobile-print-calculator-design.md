@@ -11,7 +11,7 @@ imposition and the exact program sequence to key into the machine — plus score
 and fold positions measured on the full sheet.
 
 The existing app is a desktop two-column page whose program sequence is wrong.
-This is a rebuild of the calculation core and the interface. The Windows XP
+This is a rebuild of the calculation core and the interface. The Windows 98
 visual style is kept and rebuilt properly for touch.
 
 ## Why the current sequence is wrong
@@ -150,12 +150,29 @@ Jobs are entered fresh each time; the default state is the business card job.
 
 ### Styling
 
-Windows XP Luna, rebuilt rather than approximated: blue gradient title bars,
-beveled 3D button borders, inset sunken field wells, Tahoma. Adapted for touch:
+Windows 98, rebuilt rather than approximated. The 98 look suits a phone better
+than later styles: flatter and more compact chrome costs less vertical space, and
+hard-edged bevels stay legible at small sizes where gradients turn to mush.
 
-- 44px minimum tap targets. XP's real 21px buttons are unusable with a thumb — the
-  styling is XP, the geometry is modern.
-- Pressed and focus states replace hover, which does not exist on touch.
+- **The classic silver palette** — `#c0c0c0` face, `#000080` active title bar,
+  `#008080` desktop ground.
+- **Two-tone bevels, not rounded borders.** Raised controls take white and
+  light-grey highlights on the top and left, dark-grey and black shadows on the
+  bottom and right; sunken wells invert that. Square corners throughout, one-pixel
+  borders, no border radius and no transitions.
+- **Group boxes** with the etched inset frame and a label breaking the top border,
+  replacing the current plain headings.
+- **A title bar** with the gradient, inset title text, and the boxy control
+  buttons.
+- **MS Sans Serif / Tahoma**, with a stack falling back to a system sans.
+
+Adapted for touch:
+
+- 44px minimum tap targets. The real thing's ~21px buttons are unusable with a
+  thumb — the styling is 98, the geometry is modern.
+- Pressed states use the authentic inverted bevel with the one-pixel content
+  offset, replacing hover, which does not exist on touch.
+- Focus rings are the dotted marquee outline rather than a modern glow.
 - One breakpoint up to a two-column desktop layout for bench computers. Phone is
   the design target and is built first.
 
