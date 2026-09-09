@@ -6,6 +6,8 @@ import { PRESETS, DEFAULT_JOB, FOLD_DEFAULTS } from './ui/presets.js';
 import { createSizeInputs } from './ui/inputs.js';
 import { renderSummary } from './ui/summaryView.js';
 import { renderSequence } from './ui/sequenceView.js';
+import { createVisualizer } from './ui/visualizer.js';
+import { formatShort } from './ui/format.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -22,6 +24,9 @@ const sections = {
   doc: createSizeInputs($('docInputs'), { label: 'Document', onChange: (doc) => update({ doc }) }),
   gutter: createSizeInputs($('gutterInputs'), { label: 'Gutter', allowZero: true, onChange: (gutter) => update({ gutter }) }),
 };
+
+const visualizer = createVisualizer($('canvas'));
+const NO_SCORES = { offsets: [], positions: [], segments: [] };
 
 const toInches = (value) => (state.unit === 'mm' ? mmToInches(value) : value);
 const sizeToInches = (size) => ({ width: toInches(size.width), length: toInches(size.length) });
@@ -42,6 +47,7 @@ function render() {
   const result = compute();
   renderSummary($('summary'), result, { unit: state.unit, hintDismissed: state.hintDismissed });
   renderSequence($('sequence'), result, state.unit);
+  visualizer.draw(result.layout, NO_SCORES, (inches) => formatShort(inches, state.unit));
 }
 
 /** Apply a validated change to the job. Any change re-arms the orientation hint. */
