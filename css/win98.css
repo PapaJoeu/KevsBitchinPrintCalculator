@@ -17,6 +17,10 @@
 
 * { box-sizing: border-box; }
 
+/* A hidden element is absent. This must outrank any layout class that sets
+   display, or an element toggled with the hidden attribute stays visible. */
+[hidden] { display: none !important; }
+
 html { background: var(--desktop); }
 
 body {

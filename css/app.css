@@ -64,7 +64,6 @@ main {
   height: min(40vh, 360px);
 }
 .legend { display: flex; gap: 16px; margin-top: 6px; font-size: 12px; }
-.legend[hidden] { display: none; }
 .legend .swatch {
   display: inline-block;
   width: 28px;
