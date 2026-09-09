@@ -51,8 +51,15 @@ export function createFoldControls(container, { onChange }) {
     press(styleChips, 'style', value.style);
     press(axisChips, 'axis', value.axis);
     allowanceRow.hidden = value.style !== 'trifold';
+    const size = value.axis === 'W' ? docSize.width : docSize.length;
     customList.replaceChildren(...value.custom.map((offset) => {
-      const chip = el('button', { type: 'button', 'aria-label': `Remove score at ${offset} ${unit}` }, `${offset} ${unit} ×`);
+      const inRange = offset > 0 && offset < size;
+      const chip = el('button', {
+        type: 'button',
+        class: inRange ? undefined : 'inactive',
+        title: inRange ? undefined : `Outside the document (0–${size} ${unit}); not scored`,
+        'aria-label': `Remove score at ${offset} ${unit}`,
+      }, inRange ? `${offset} ${unit} ×` : `${offset} ${unit} (out of range) ×`);
       chip.addEventListener('click', () => emit({ custom: value.custom.filter((o) => o !== offset) }));
       return chip;
     }));
@@ -100,7 +107,9 @@ export function createFoldControls(container, { onChange }) {
       reflect();
     },
     setDocSize(nextDocSize) {
+      const changed = docSize.width !== nextDocSize.width || docSize.length !== nextDocSize.length;
       docSize = nextDocSize;
+      if (changed) reflect();
     },
   };
 }

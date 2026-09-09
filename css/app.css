@@ -30,6 +30,7 @@ main {
 /* Chips */
 .chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .chips button { flex: 1 0 auto; padding-left: 10px; padding-right: 10px; white-space: nowrap; }
+.chips button.inactive { color: var(--disabled); text-shadow: 1px 1px var(--highlight); }
 
 /* Custom size fields */
 .custom {
