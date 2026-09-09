@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { computeLayout } from '../js/core/layout.js';
+import { computeLayout, suggestOrientation } from '../js/core/layout.js';
 
 const size = (width, length) => ({ width, length });
 const EIGHTH = size(0.125, 0.125);
@@ -61,4 +61,28 @@ test('rejects impossible dimensions as programmer errors', () => {
   assert.throws(() => computeLayout(size(12, 18), size(0, 2), EIGHTH), RangeError);
   assert.throws(() => computeLayout(size(12, 18), size(3.5, 2), size(-1, 0)), RangeError);
   assert.throws(() => computeLayout(size(NaN, 18), size(3.5, 2), EIGHTH), RangeError);
+});
+
+test('suggests turning the document when that fits more', () => {
+  // 3.5x2 on 12x18 is 24-up; 2x3.5 on 12x18 is 25-up.
+  assert.deepEqual(suggestOrientation(size(12, 18), size(3.5, 2), EIGHTH), { rotate: 'doc', count: 25 });
+});
+
+test('suggests nothing when the entered orientation is already best', () => {
+  assert.equal(suggestOrientation(size(12, 18), size(2, 3.5), EIGHTH), null);
+});
+
+test('prefers turning the document over the sheet on a tie', () => {
+  // 8.5x11 on 12x18 is 1-up; either turn gives 2-up.
+  assert.deepEqual(suggestOrientation(size(12, 18), size(8.5, 11), EIGHTH), { rotate: 'doc', count: 2 });
+});
+
+test('suggests turning the sheet when only that helps', () => {
+  // Unequal gutters make the two turns differ: as entered 21-up, doc turned 20-up, sheet turned 25-up.
+  assert.deepEqual(suggestOrientation(size(12, 18), size(3.5, 2), size(0.125, 0.5)), { rotate: 'sheet', count: 25 });
+});
+
+test('still suggests a turn when nothing fits as entered', () => {
+  assert.deepEqual(suggestOrientation(size(8.5, 5.5), size(8.5, 5), size(0, 0)), null);
+  assert.deepEqual(suggestOrientation(size(12, 6), size(5, 10), size(0, 0)), { rotate: 'doc', count: 1 });
 });

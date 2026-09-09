@@ -59,3 +59,26 @@ export function computeLayout(sheet, doc, gutter) {
   }
   return { fits: true, across, down, imposed, margins, docs, sheet, doc, gutter };
 }
+
+const turned = ({ width, length }) => ({ width: length, length: width });
+
+function countUp(sheet, doc, gutter) {
+  const { across, down } = computeLayout(sheet, doc, gutter);
+  return across * down;
+}
+
+/**
+ * Whether turning the document or the sheet 90° would fit more documents.
+ * Returns null when the entered orientation is already best, otherwise the better
+ * turn as { rotate: 'doc' | 'sheet', count }. Ties prefer turning the document,
+ * which leaves the sheet as it is fed.
+ */
+export function suggestOrientation(sheet, doc, gutter) {
+  const current = countUp(sheet, doc, gutter);
+  const candidates = [
+    { rotate: 'doc', count: countUp(sheet, turned(doc), gutter) },
+    { rotate: 'sheet', count: countUp(turned(sheet), doc, gutter) },
+  ];
+  const best = candidates.reduce((a, b) => (b.count > a.count ? b : a));
+  return best.count > current ? best : null;
+}
