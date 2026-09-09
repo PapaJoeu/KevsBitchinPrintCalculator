@@ -54,7 +54,12 @@ function compute() {
 function render() {
   const result = compute();
   foldControls.setDocSize(state.doc);
-  renderSummary($('summary'), result, { unit: state.unit, hintDismissed: state.hintDismissed });
+  renderSummary($('summary'), result, {
+    unit: state.unit,
+    hintDismissed: state.hintDismissed,
+    onApply: applyRotation,
+    onDismiss: dismissHint,
+  });
   renderSequence($('sequence'), result, state.unit);
   renderScores($('scores'), result, state.fold, state.unit);
   visualizer.draw(result.layout, result.scores, (inches) => formatShort(inches, state.unit));
@@ -64,6 +69,18 @@ function render() {
 /** Apply a validated change to the job. Any change re-arms the orientation hint. */
 function update(patch) {
   Object.assign(state, patch, { hintDismissed: false });
+  render();
+}
+
+/** Turn the sheet or document 90°. An external change, so it is echoed into the section. */
+function applyRotation(which) {
+  const turned = { width: state[which].length, length: state[which].width };
+  sections[which].setValue(turned);
+  update({ [which]: turned });
+}
+
+function dismissHint() {
+  state.hintDismissed = true;
   render();
 }
 

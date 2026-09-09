@@ -7,21 +7,35 @@ import { formatLength } from './format.js';
  * @param result    { layout, steps, suggestion }
  * @param options   { unit, hintDismissed, onApply(rotate), onDismiss() }
  */
-export function renderSummary(container, { layout, steps }, { unit }) {
+export function renderSummary(container, { layout, steps, suggestion }, { unit, hintDismissed, onApply, onDismiss }) {
   const fmt = (inches) => `${formatLength(inches, unit)} ${unit}`;
   if (!layout.fits) {
     container.replaceChildren(
       el('div', { class: 'nup' }, 'Does not fit'),
       el('div', { class: 'panel warning' }, ...explainNoFit(layout, fmt)),
     );
-    return;
+  } else {
+    container.replaceChildren(
+      el('div', { class: 'nup' }, `${layout.across * layout.down}-up`),
+      el('p', { class: 'detail' }, `${layout.across} across × ${layout.down} down · ${steps.length} cuts`),
+      el('p', { class: 'detail' },
+        `Imposed ${fmt(layout.imposed.width)} × ${fmt(layout.imposed.length)} · margins ${fmt(layout.margins.left)} side, ${fmt(layout.margins.top)} head`),
+    );
   }
-  container.replaceChildren(
-    el('div', { class: 'nup' }, `${layout.across * layout.down}-up`),
-    el('p', { class: 'detail' }, `${layout.across} across × ${layout.down} down · ${steps.length} cuts`),
-    el('p', { class: 'detail' },
-      `Imposed ${fmt(layout.imposed.width)} × ${fmt(layout.imposed.length)} · margins ${fmt(layout.margins.left)} side, ${fmt(layout.margins.top)} head`),
-  );
+  if (suggestion && !hintDismissed) container.append(hintBox(suggestion, layout, { onApply, onDismiss }));
+}
+
+// The tool reports what the sheet as entered does; a better turn is offered, never applied.
+function hintBox(suggestion, layout, { onApply, onDismiss }) {
+  const what = suggestion.rotate === 'doc' ? 'document' : 'sheet';
+  const current = layout.across * layout.down;
+  const apply = el('button', { type: 'button' }, `Turn ${what}`);
+  apply.addEventListener('click', () => onApply(suggestion.rotate));
+  const dismiss = el('button', { type: 'button' }, 'Keep as entered');
+  dismiss.addEventListener('click', onDismiss);
+  return el('div', { class: 'panel hint-box' },
+    el('p', {}, `Turning the ${what} fits ${suggestion.count}-up${current > 0 ? ` instead of ${current}-up` : ''}.`),
+    el('div', { class: 'actions' }, apply, dismiss));
 }
 
 function explainNoFit({ sheet, doc, across, down }, fmt) {
