@@ -138,6 +138,9 @@ Single scrolling column, thumb-reachable:
 
 - Sheet, document, gutter — each a row of preset chips plus a "Custom" chip that
   reveals two number inputs.
+- **12x18 and 13x19 lead the sheet row** as quick-select chips. They are the
+  common digital and small-press sizes and must be reachable without scrolling the
+  chip row; the remaining sheet presets follow them.
 - Inputs use `inputmode="decimal"` and accept fractions (`3 1/2`, `.125`), which is
   how measurements are written and spoken on the floor.
 - Results below: n-up summary, visualizer, then the program sequence with the most
