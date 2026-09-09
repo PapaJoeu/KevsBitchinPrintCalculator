@@ -105,3 +105,13 @@ for (const button of $('unitChips').children) {
 }
 
 setUnit('in');
+
+// Offline shell. When a new version takes over an open page, reload once to run it.
+if ('serviceWorker' in navigator) {
+  let hadController = Boolean(navigator.serviceWorker.controller);
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadController) window.location.reload();
+    hadController = true;
+  });
+  navigator.serviceWorker.register('./sw.js');
+}
