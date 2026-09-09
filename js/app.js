@@ -5,6 +5,7 @@ import { mmToInches } from './core/measure.js';
 import { PRESETS, DEFAULT_JOB, FOLD_DEFAULTS } from './ui/presets.js';
 import { createSizeInputs } from './ui/inputs.js';
 import { renderSummary } from './ui/summaryView.js';
+import { renderSequence } from './ui/sequenceView.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -40,6 +41,7 @@ function compute() {
 function render() {
   const result = compute();
   renderSummary($('summary'), result, { unit: state.unit, hintDismissed: state.hintDismissed });
+  renderSequence($('sequence'), result, state.unit);
 }
 
 /** Apply a validated change to the job. Any change re-arms the orientation hint. */
