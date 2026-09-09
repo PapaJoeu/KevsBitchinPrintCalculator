@@ -35,7 +35,11 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))))
+      // CacheStorage is per-origin: on GitHub Pages every project page of this
+      // account shares one origin, so only ever delete our own stale versions.
+      .then((keys) => Promise.all(
+        keys.filter((key) => key.startsWith('printcalc-') && key !== CACHE).map((key) => caches.delete(key)),
+      ))
       .then(() => self.clients.claim()),
   );
 });
