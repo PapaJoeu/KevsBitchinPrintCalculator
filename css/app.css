@@ -1,6 +1,10 @@
 /* app.css — page layout for the calculator. Phone first; one breakpoint to two columns. */
 
-.window { margin: 4px; }
+.window {
+  margin: 4px;
+  max-width: calc(100vw - 8px);
+  overflow-x: hidden;
+}
 
 .toolbar {
   display: flex;
@@ -13,6 +17,7 @@ main {
   display: grid;
   gap: 8px;
   padding: 2px;
+  min-width: 0;
 }
 
 .column {
@@ -59,6 +64,7 @@ main {
   height: min(40vh, 360px);
 }
 .legend { display: flex; gap: 16px; margin-top: 6px; font-size: 12px; }
+.legend[hidden] { display: none; }
 .legend .swatch {
   display: inline-block;
   width: 28px;
