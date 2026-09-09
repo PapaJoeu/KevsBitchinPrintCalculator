@@ -55,6 +55,12 @@ eight cuts at 2.000" are eight numbered steps.
 
 ### Step generation
 
+**Axis order follows the sheet as entered.** Cutting starts along the length — the
+second dimension the worker typed — and the width axis is fully cut before the
+length axis. Rotating the sheet inputs therefore changes which side is cut first:
+a 12x18 sheet starts from the 18" side, an 18x12 sheet from the 12" side. The
+order is derived from the input, never fixed in the code.
+
 Given `across` and `down` documents, imposed block `impW x impL`, and margins:
 
 ```
@@ -106,9 +112,22 @@ Pure functions. No DOM, no formatting. All math in inches; unit conversion happe
 at the display boundary.
 
 - **`layout.js`** — `computeLayout(sheet, doc, gutter)` returns
-  `{ across, down, imposed, margins, docs[] }`. Tries document and sheet rotations
-  and returns the orientation yielding the highest n-up. Alignment is always
-  centered.
+  `{ across, down, imposed, margins, docs[] }`. Alignment is always centered.
+
+  **Orientation as entered is authoritative.** The layout is computed for the sheet
+  and document exactly as the worker typed them; it never silently rotates to
+  improve yield. A 12x18 sheet is cut starting from the 18" side, and entering it
+  as 18x12 starts from the 12" side instead.
+
+  This matters because a better yield often exists in the other orientation — a
+  3.5x2 card on 12x18 gives 24-up, while the same card on 18x12 gives 25-up. The
+  worker has the physical sheet and the press setup in front of them; the tool
+  reports what their sheet does, it does not overrule them.
+
+  **A better orientation is surfaced, not applied.** When rotating the sheet or the
+  document would yield more documents, the UI shows a dismissible hint naming the
+  alternative and its n-up, with a control to apply it. The choice stays the
+  worker's.
 - **`sequence.js`** — `computeSequence(layout)` returns the ordered step list per
   the rules above.
 - **`scores.js`** — `computeScores(layout, foldSpec)` returns score positions in
@@ -123,8 +142,17 @@ attempt, this regression net is the main protection for the rebuild.
 Named fold styles generating panel measurements, plus custom offsets:
 
 - **Bifold** — one score at the halfway point.
-- **Trifold** — two scores; the inside-folding panel is shortened by a wrap
-  allowance so the panel tucks without buckling.
+- **Trifold** — two scores. The inside-folding panel is shortened by a **1/16"
+  (0.0625") wrap allowance** so it tucks without buckling; the allowance comes off
+  the tucked panel and is added to the outer panel, keeping the overall length
+  equal to the document. For a standard 8.5x11 letter trifold this gives panels of
+  3.6042" / 3.6667" / 3.7292" rather than three flat 3.6667" thirds.
+
+  1/16" is the safe general-purpose default: it covers text-weight and light card
+  stock, which is the overwhelming majority of trifold work, and it errs toward
+  tucking loosely rather than buckling. Heavy stock wants more. The allowance is an
+  editable input carrying 1/16" as its default, so it can be raised for a thick job
+  without a code change.
 - **Z-fold** — two scores at equal thirds, no wrap allowance.
 - **Custom** — one or more scores entered as **measurements**, not percentages.
   Multiple custom scores are supported and combine with a named style.
