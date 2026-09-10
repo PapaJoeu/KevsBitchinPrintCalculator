@@ -2,7 +2,7 @@
 
 A phone-first calculator for print production. Enter sheet, document, and gutter
 sizes; get the imposition, the guillotine program sequence to key into the cutter,
-and score positions for folds. Windows 98 style. Works offline once opened.
+and score positions for folds. An Advanced section sets the printer's non-printable area, a manual count, and alignment with offsets. Windows 98 style. Works offline once opened.
 
 ## Run locally
 
@@ -14,7 +14,7 @@ Then open http://localhost:8080. ES modules need an HTTP origin, so `file://` wi
 
     npm test
 
-The core (`js/core/`) is pure and covered by `node:test`, including two
+The core (`js/core/`) is pure and covered by `node:test`, including three
 hand-verified program sequences (`tests/sequence.test.js`). Change the cutting
 model only with those fixtures passing.
 

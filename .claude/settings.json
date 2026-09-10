@@ -11,7 +11,7 @@
           },
           {
             "type": "command",
-            "command": "case \"$CLAUDE_TOOL_INPUT_FILE_PATH\" in *js/core/*) echo '--- core changed: running the hand-verified fixtures ---' >&2; node --test tests/sequence.test.js tests/layout.test.js tests/scores.test.js tests/measure.test.js 2>&1 | grep -E '^# (fail|pass)|^ℹ (pass|fail)|not ok' >&2 ;; esac; exit 0",
+            "command": "case \"$CLAUDE_TOOL_INPUT_FILE_PATH\" in *js/core/*) echo '--- core changed: running the hand-verified fixtures ---' >&2; node --test tests/sequence.test.js tests/layout.test.js tests/scores.test.js tests/measure.test.js tests/printable.test.js tests/count.test.js tests/placement.test.js 2>&1 | grep -E '^# (fail|pass)|^ℹ (pass|fail)|not ok' >&2 ;; esac; exit 0",
             "timeout": 60
           }
         ]

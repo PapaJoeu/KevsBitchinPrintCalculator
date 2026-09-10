@@ -12,15 +12,28 @@ step, no dependencies. See README.md for run/test/deploy commands.
 ## The cutting model — read before touching js/core/sequence.js
 
 This project exists because the program sequence was wrong in every prior
-attempt. `TWO_UP` and `BUSINESS_CARD` in tests/sequence.test.js are jobs a
-production worker verified by hand. They are the specification: if they fail,
-the implementation is wrong — never adjust a fixture to make a test pass.
+attempt. `TWO_UP`, `BUSINESS_CARD`, and `FLUSH_TOP` in tests/sequence.test.js
+are jobs a production worker verified by hand. They are the specification: if
+they fail, the implementation is wrong — never adjust a fixture to make a test
+pass.
 
-Per axis with n documents: `n-1` ladder rungs stepping down by (doc + gutter),
-then trims at the doc dimension for `k = 2..n`. The trim loop starts at 2, not
-1, because **the final ladder rung already lands on the doc dimension and is
-the first trim**. This looks like an off-by-one; it isn't. Also: an axis with
-one document gets no trims, and a zero gutter needs none.
+Per axis with n documents: `n-1` strip cuts stepping down by (doc + gutter),
+then gutter trims at the doc dimension for `k = 2..n`. The loop starts at 2, not
+1, because **the final strip cut already lands on the doc dimension and is the
+first gutter trim**. This looks like an off-by-one; it isn't. An axis with one
+document gets no gutter trims, and a zero gutter needs none.
+
+**A margin cut exists on an edge iff that edge's margin is greater than zero.**
+A block flush to an edge (offset 0) keeps that edge as its reference and gets no
+cut there. Step kinds name what each cut removes: `margin` (with `edge`),
+`strip`, `gutter`.
+
+**Margin is not the non-printable area.** Margin is the outside area the
+squaring cuts remove; NPA is a per-edge placement constraint that changes how
+many documents fit and where, and never appears in the cut list. Auto placement
+centres within the printable region and can never violate NPA; only a manual
+offset or count can, and the response is a warning with fixes, never a silent
+correction.
 
 Every cut is its own step. Never collapse repeats into counts — the operator
 keys each one into the machine separately.
@@ -31,6 +44,8 @@ keys each one into the machine separately.
   from `js/ui/`. Unit conversion happens only in `js/app.js` (input edge) and
   `js/ui/format.js` (display edge).
 - `js/ui/` — rendering and events, driven by `js/app.js`'s single render loop.
+- `gutter` is `{ columns, rows }` — the gutter between columns and between rows.
+- `js/app.js` keeps everything the worker entered under `state.job` in the current unit.
 
 ## Design decisions that look like bugs
 
@@ -41,6 +56,7 @@ keys each one into the machine separately.
   layout classes setting `display` otherwise beat the attribute.
 - `applyRotation` deliberately leaves `state.fold.axis` alone — the axis is
   sheet-relative.
+- **NPA, alignment, and offsets are sheet-relative and do not rotate with the sheet**, like the fold axis.
 
 ## Gotchas
 
