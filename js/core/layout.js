@@ -5,6 +5,8 @@
 // suggestOrientation's job, never computeLayout's.
 
 const EPSILON = 1e-9;
+const EDGES = ['top', 'bottom', 'left', 'right'];
+const NO_NPA = { top: 0, bottom: 0, left: 0, right: 0 };
 
 function assertPositive(name, obj, keys, { allowZero }) {
   for (const key of keys) {
@@ -16,36 +18,70 @@ function assertPositive(name, obj, keys, { allowZero }) {
   }
 }
 
-function countAlong(sheetSize, docSize, gutterSize) {
-  // n documents need n*doc + (n-1)*gutter <= sheet. The epsilon keeps an exact
-  // fit (e.g. 0.3 / 0.1 = 2.9999999999999996) from losing a document.
-  return Math.floor((sheetSize + gutterSize) / (docSize + gutterSize) + EPSILON);
+function countAlong(regionSize, docSize, gutterSize) {
+  // n documents need n*doc + (n-1)*gutter <= region. The epsilon keeps an exact
+  // fit (e.g. 0.3 / 0.1 = 2.9999999999999996) from losing a document; the floor
+  // at zero keeps a region smaller than nothing from counting negative documents.
+  return Math.max(0, Math.floor((regionSize + gutterSize) / (docSize + gutterSize) + EPSILON));
+}
+
+/** The sheet inset by each edge's non-printable area: where documents may be placed. */
+export function printableRegion(sheet, npa = NO_NPA) {
+  return {
+    width: sheet.width - npa.left - npa.right,
+    length: sheet.length - npa.top - npa.bottom,
+  };
+}
+
+/** The most documents that fit a region, per axis. */
+export function fitCount(region, doc, gutter) {
+  return {
+    across: countAlong(region.width, doc.width, gutter.columns),
+    down: countAlong(region.length, doc.length, gutter.rows),
+  };
 }
 
 /**
- * @param sheet   { width, length } inches, both > 0
- * @param doc     { width, length } inches, both > 0
- * @param gutter  { columns, rows } inches, both >= 0: the gutter between columns, and between rows
+ * The four margins that put a block on the sheet: centred within the printable
+ * region, then kept on the sheet. A block larger than the printable region (only a
+ * count override can make one) is clamped rather than hung off an edge.
  */
-export function computeLayout(sheet, doc, gutter) {
+export function placeBlock(sheet, printable, npa, imposed) {
+  const axis = (total, printableSize, blockSize, nearNpa) => {
+    const room = total - blockSize;
+    const near = Math.min(Math.max(nearNpa + (printableSize - blockSize) / 2, 0), room);
+    return [near, room - near];
+  };
+  const [top, bottom] = axis(sheet.length, printable.length, imposed.length, npa.top);
+  const [left, right] = axis(sheet.width, printable.width, imposed.width, npa.left);
+  return { top, bottom, left, right };
+}
+
+/**
+ * @param sheet    { width, length } inches, both > 0
+ * @param doc      { width, length } inches, both > 0
+ * @param gutter   { columns, rows } inches, both >= 0: the gutter between columns, and between rows
+ * @param options  { npa }  npa = { top, bottom, left, right } inches >= 0, default all zero.
+ *   The non-printable area only constrains placement; it never appears in the cut list.
+ */
+export function computeLayout(sheet, doc, gutter, { npa = NO_NPA } = {}) {
   assertPositive('sheet', sheet, ['width', 'length'], { allowZero: false });
   assertPositive('doc', doc, ['width', 'length'], { allowZero: false });
   assertPositive('gutter', gutter, ['columns', 'rows'], { allowZero: true });
+  assertPositive('npa', npa, EDGES, { allowZero: true });
 
-  const across = countAlong(sheet.width, doc.width, gutter.columns);
-  const down = countAlong(sheet.length, doc.length, gutter.rows);
+  const printable = printableRegion(sheet, npa);
+  const auto = fitCount(printable, doc, gutter);
+  const { across, down } = auto;
   if (across < 1 || down < 1) {
-    return { fits: false, across, down, sheet, doc, gutter };
+    return { fits: false, across, down, auto, printable, npa, sheet, doc, gutter };
   }
 
   const imposed = {
     width: doc.width * across + gutter.columns * (across - 1),
     length: doc.length * down + gutter.rows * (down - 1),
   };
-  const margins = {
-    left: (sheet.width - imposed.width) / 2,
-    top: (sheet.length - imposed.length) / 2,
-  };
+  const margins = placeBlock(sheet, printable, npa, imposed);
   const docs = [];
   for (let row = 0; row < down; row++) {
     for (let col = 0; col < across; col++) {
@@ -57,7 +93,7 @@ export function computeLayout(sheet, doc, gutter) {
       });
     }
   }
-  return { fits: true, across, down, imposed, margins, docs, sheet, doc, gutter };
+  return { fits: true, across, down, auto, printable, npa, imposed, margins, docs, sheet, doc, gutter };
 }
 
 const turned = ({ width, length }) => ({ width: length, length: width });

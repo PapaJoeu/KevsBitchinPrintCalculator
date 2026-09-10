@@ -12,7 +12,7 @@ test('business card: 3.5x2 on 12x18 with 1/8" gutters is 3 across x 8 down', () 
   assert.equal(layout.across, 3);
   assert.equal(layout.down, 8);
   assert.deepEqual(layout.imposed, { width: 10.75, length: 16.875 });
-  assert.deepEqual(layout.margins, { left: 0.625, top: 0.5625 });
+  assert.deepEqual(layout.margins, { top: 0.5625, bottom: 0.5625, left: 0.625, right: 0.625 });
   assert.equal(layout.docs.length, 24);
 });
 
@@ -28,7 +28,7 @@ test('2-up: 11x8.5 on 12x18 is 1 across x 2 down', () => {
   assert.equal(layout.across, 1);
   assert.equal(layout.down, 2);
   assert.deepEqual(layout.imposed, { width: 11, length: 17.125 });
-  assert.deepEqual(layout.margins, { left: 0.5, top: 0.4375 });
+  assert.deepEqual(layout.margins, { top: 0.4375, bottom: 0.4375, left: 0.5, right: 0.5 });
 });
 
 test('orientation is taken as entered: 8.5x11 on 12x18 is 1-up, never rotated to fit 2', () => {
@@ -40,7 +40,7 @@ test('zero gutter fills the sheet exactly with zero margins', () => {
   const layout = computeLayout(size(8.5, 11), size(4.25, 5.5), gutter(0, 0));
   assert.equal(layout.across, 2);
   assert.equal(layout.down, 2);
-  assert.deepEqual(layout.margins, { left: 0, top: 0 });
+  assert.deepEqual(layout.margins, { top: 0, bottom: 0, left: 0, right: 0 });
 });
 
 test('an exact fit is not lost to floating point', () => {
