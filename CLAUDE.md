@@ -64,5 +64,5 @@ keys each one into the machine separately.
   phones keep serving the old build.
 - Relative asset paths only (`./js/app.js`) — this is a GitHub *project* page
   served under a subpath, so absolute paths 404 in production but work locally.
-- The GitHub repo is currently **archived and read-only**; `git push` fails
-  with 403 until it is unarchived.
+- GitHub Pages must serve from `main` at `/` (the repo root). `/docs` holds
+  only specs and plans; pointing Pages there fails every build.
