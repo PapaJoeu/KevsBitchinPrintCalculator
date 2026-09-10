@@ -17,7 +17,8 @@ import { createSheetView } from './ui/sheetView.js';
 import { createTabs } from './ui/tabs.js';
 import { createCopyLink } from './ui/copyLink.js';
 import { createPreferencesView } from './ui/preferencesView.js';
-import { formatShort } from './ui/format.js';
+import { createHistoryView } from './ui/historyView.js';
+import { formatShort, formatFraction, describeAdvanced, describeFold } from './ui/format.js';
 
 const $ = (id) => document.getElementById(id);
 const TABS = [{ id: 'calculator', label: 'Calculator' }, { id: 'history', label: 'History' }, { id: 'preferences', label: 'Preferences' }];
@@ -70,6 +71,18 @@ const NO_SCORES = { offsets: [], positions: [], segments: [] };
 const tabs = createTabs($('tabs'), TABS, { onSelect: showTab });
 $('shareBar').append(createCopyLink(() => urlFor(state.unit, state.job)));
 const preferencesView = createPreferencesView($('preferences'), { onChange: setPrefs });
+const historyView = createHistoryView($('history'), {
+  summarize,
+  copyLink: (entry) => createCopyLink(() => urlFor(entry.unit, entry.job)),
+  onLoad: (entry) => {
+    loadJob(entry.unit, entry.job);
+    showTab('calculator');
+  },
+  onDelete: (index) => setHistory(state.history.filter((_, i) => i !== index)),
+  onClear: () => setHistory([]),
+});
+// The advanced summary of a default job, per unit: a row shows it only when it differs.
+const DEFAULT_ADVANCED = Object.fromEntries(['in', 'mm'].map((unit) => [unit, describeAdvanced(DEFAULTS[unit], unit, DEFAULTS[unit].npa.top)]));
 
 const toInchesIn = (unit) => (value) => (unit === 'mm' ? mmToInches(value) : value);
 
@@ -99,6 +112,18 @@ function compute(job, unit) {
 /** The shareable link for a job: this page, with the job in the hash. */
 function urlFor(unit, job) {
   return `${window.location.origin}${window.location.pathname}#${encodeJob(unit, job, DEFAULTS[unit])}`;
+}
+
+/** What a history row shows, computed fresh from the stored inputs in their own unit. */
+function summarize({ unit, job }) {
+  const { layout, steps } = compute(job, unit);
+  const fmt = (v) => (unit === 'in' ? formatFraction(v) : String(v));
+  const { sheet, doc, gutter } = job;
+  const gutterText = gutter.columns === gutter.rows ? fmt(gutter.columns) : `${fmt(gutter.columns)} × ${fmt(gutter.rows)}`;
+  const line = `${doc.width} × ${doc.length} on ${sheet.width} × ${sheet.length} · ${gutterText}${unit === 'in' ? '"' : ' mm'} gutter${layout.fits ? ` · ${steps.length} cuts` : ''}`;
+  const advanced = describeAdvanced(job, unit, DEFAULTS[unit].npa.top);
+  const extra = [advanced === DEFAULT_ADVANCED[unit] ? '' : advanced, describeFold(job.fold)].filter(Boolean).join(' · ');
+  return { nup: layout.fits ? `${layout.across * layout.down}-up` : 'Does not fit', line, extra };
 }
 
 function render() {
@@ -140,9 +165,14 @@ function afterChange() {
 /** The job has sat unchanged for SETTLE_MS: record it if it fits. */
 function recordSettled() {
   if (!compute(state.job, state.unit).layout.fits) return;
-  state.history = recordJob(state.history, state.unit, state.job, Date.now());
-  storage.saveHistory(state.history);
-  tabs.setBadge('history', state.history.length);
+  setHistory(recordJob(state.history, state.unit, state.job, Date.now()));
+}
+
+/** Replace the history: in memory, in storage, on the badge, and on screen if it is showing. */
+function setHistory(entries) {
+  state.history = entries;
+  storage.saveHistory(entries);
+  tabs.setBadge('history', entries.length);
   if (state.tab === 'history') renderHistoryPanel();
 }
 
@@ -234,8 +264,9 @@ function setPrefs(patch) {
   preferencesView.setValue(state.prefs);
 }
 
-/** The History view arrives with its own task; until then the panel stays empty. */
-function renderHistoryPanel() {}
+function renderHistoryPanel() {
+  historyView.render(state.history, { unit: state.unit, available: storage.available, now: Date.now() });
+}
 
 for (const button of $('unitChips').children) {
   button.addEventListener('click', () => setUnit(button.dataset.unit));

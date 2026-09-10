@@ -22,6 +22,7 @@ const SHELL = [
   './js/ui/dom.js',
   './js/ui/foldInputs.js',
   './js/ui/format.js',
+  './js/ui/historyView.js',
   './js/ui/presets.js',
   './js/ui/preferencesView.js',
   './js/ui/scoresView.js',
