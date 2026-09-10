@@ -66,20 +66,29 @@ function violationPanel(layout, job, pair, { short, onFix }) {
     ? button(`Offset → ${short(layout.npa[offsetEdge])}`, () => onFix({ fix: 'offset', edge: offsetEdge, inches: layout.npa[offsetEdge] }))
     : button(`Back to auto (${layout.auto[axis]} ${axis})`, () => onFix({ fix: 'count', axis }));
   const values = Object.fromEntries(edges.map((edge) => [edge, layout.margins[edge]]));
-  const second = button(`NPA ${edges.join(' & ')} → ${short(values[edges[0]])}`, () => onFix({ fix: 'npa', values }));
+  // Name every value the fix actually applies: two violating edges can have different
+  // margins, and a label promising one number while setting another is a silent correction.
+  const label = edges.length === 1 || values[edges[0]] === values[edges[1]]
+    ? `NPA ${edges.join(' & ')} → ${short(values[edges[0]])}`
+    : `NPA ${edges.map((edge) => `${edge} → ${short(values[edge])}`).join(' & ')}`;
+  const second = button(label, () => onFix({ fix: 'npa', values }));
   return el('div', { class: 'panel warning' }, el('p', {}, message), el('div', { class: 'actions' }, first, second));
 }
 
 function explainNoFit(layout, job, fmt, onFix) {
   const { sheet, doc, gutter, across, down, auto, imposed, margins } = layout;
   const parts = [];
-  if (imposed && (imposed.width > sheet.width || imposed.length > sheet.length)) {
-    // A count the physical sheet cannot hold.
-    if (imposed.width > sheet.width) {
+  // A count the physical sheet cannot hold — but only where auto could hold at least one.
+  // When auto is 0 the document itself is too big for the printable region and the count
+  // is merely masking that, so "back to auto" would fix nothing: fall through and say so.
+  const wideOverflow = imposed && imposed.width > sheet.width && auto.across >= 1;
+  const longOverflow = imposed && imposed.length > sheet.length && auto.down >= 1;
+  if (wideOverflow || longOverflow) {
+    if (wideOverflow) {
       parts.push(el('p', {}, `${across} across won't fit: ${across} × ${fmt(doc.width)} + ${across - 1} × ${fmt(gutter.columns)} = ${fmt(imposed.width)}, sheet is ${fmt(sheet.width)}.`),
         el('div', { class: 'actions' }, button(`Back to auto (${auto.across} across)`, () => onFix({ fix: 'count', axis: 'across' }))));
     }
-    if (imposed.length > sheet.length) {
+    if (longOverflow) {
       parts.push(el('p', {}, `${down} down won't fit: ${down} × ${fmt(doc.length)} + ${down - 1} × ${fmt(gutter.rows)} = ${fmt(imposed.length)}, sheet is ${fmt(sheet.length)}.`),
         el('div', { class: 'actions' }, button(`Back to auto (${auto.down} down)`, () => onFix({ fix: 'count', axis: 'down' }))));
     }
