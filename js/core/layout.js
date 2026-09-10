@@ -45,6 +45,10 @@ export function fitCount(region, doc, gutter) {
  * The four margins that put a block on the sheet: centred within the printable
  * region, then kept on the sheet. A block larger than the printable region (only a
  * count override can make one) is clamped rather than hung off an edge.
+ *
+ * Precondition: `imposed` must fit the sheet itself (imposed.width <= sheet.width and
+ * imposed.length <= sheet.length). computeLayout enforces this before calling
+ * placeBlock; a block that does not fit the sheet is not this function's job to detect.
  */
 export function placeBlock(sheet, printable, npa, imposed) {
   const axis = (total, printableSize, blockSize, nearNpa) => {
