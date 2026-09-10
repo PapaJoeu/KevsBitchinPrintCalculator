@@ -2,7 +2,7 @@
 import { computeLayout, suggestOrientation } from './core/layout.js';
 import { computeSequence } from './core/sequence.js';
 import { computeScores } from './core/scores.js';
-import { mmToInches } from './core/measure.js';
+import { mmToInches, inchesToMm } from './core/measure.js';
 import { PRESETS, DEFAULTS } from './ui/presets.js';
 import { createSizeInputs } from './ui/sizeInputs.js';
 import { createFoldInputs } from './ui/foldInputs.js';
@@ -66,9 +66,11 @@ function render() {
   advancedInputs.setAuto(result.layout.auto);
   renderSummary($('summary'), result, {
     unit: state.unit,
+    job: state.job,
     hintDismissed: state.hintDismissed,
     onApply: applyRotation,
     onDismiss: dismissHint,
+    onFix: applyFix,
   });
   renderSequence($('sequence'), result, state.unit);
   renderScores($('scores'), result, state.job.fold, state.unit);
@@ -94,6 +96,24 @@ function applyRotation(which) {
 function dismissHint() {
   state.hintDismissed = true;
   render();
+}
+
+/** Apply a fix the summary offered. Values arrive in inches; the job holds the current unit. */
+function applyFix(action) {
+  const fromInches = (v) => (state.unit === 'mm' ? inchesToMm(v) : v);
+  const job = state.job;
+  if (action.fix === 'offset') {
+    update({ align: { ...job.align, [action.edge]: fromInches(action.inches) } });
+  } else if (action.fix === 'npa') {
+    const values = Object.fromEntries(Object.entries(action.values).map(([edge, v]) => [edge, fromInches(v)]));
+    update({ npa: { ...job.npa, ...values } });
+  } else if (action.fix === 'count') {
+    const count = { ...job.count };
+    delete count[action.axis];
+    update({ count });
+  }
+  // An external change to the advanced values: echo it into the section.
+  advancedInputs.setValue({ npa: state.job.npa, count: state.job.count, align: state.job.align }, state.unit, DEFAULTS[state.unit].npa.top);
 }
 
 /** A new unit is a new job: reset to that unit's defaults (jobs are entered fresh). */

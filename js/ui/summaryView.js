@@ -1,49 +1,116 @@
-// summaryView.js — the n-up line, imposed-block details, the no-fit explanation,
-// and (Task 12) the better-orientation hint.
+// summaryView.js — the n-up line, printable/imposed/margin details, the no-fit
+// explanation, NPA-violation warnings with their fixes, and the orientation hint.
+// A warning never blanks the sequence: the worker may be right and the tool wrong.
 import { el } from './dom.js';
-import { formatMeasure } from './format.js';
+import { formatMeasure, formatShort } from './format.js';
+
+const VERTICAL = ['top', 'bottom'];
+const HORIZONTAL = ['left', 'right'];
+const cap = (s) => s[0].toUpperCase() + s.slice(1);
+const hasNpa = (npa) => Object.values(npa).some((v) => v > 0);
+
+function button(text, onClick) {
+  const b = el('button', { type: 'button' }, text);
+  b.addEventListener('click', onClick);
+  return b;
+}
 
 /**
- * @param result    { layout, steps, suggestion }
- * @param options   { unit, hintDismissed, onApply(rotate), onDismiss() }
+ * @param result   { layout, steps, suggestion }
+ * @param options  { unit, job, hintDismissed, onApply(rotate), onDismiss(), onFix(action) }
+ *   job is the entered job (current unit): it tells an offset cause from a count cause.
+ *   onFix actions carry inches: { fix: 'offset', edge, inches } · { fix: 'npa', values }
+ *   · { fix: 'count', axis }.
  */
-export function renderSummary(container, { layout, steps, suggestion }, { unit, hintDismissed, onApply, onDismiss }) {
+export function renderSummary(container, { layout, steps, suggestion }, { unit, job, hintDismissed, onApply, onDismiss, onFix }) {
   const fmt = (inches) => `${formatMeasure(inches, unit)} ${unit}`;
+  const short = (inches) => `${formatShort(inches, unit)} ${unit}`;
+  const children = [];
   if (!layout.fits) {
-    container.replaceChildren(
-      el('div', { class: 'nup' }, 'Does not fit'),
-      el('div', { class: 'panel warning' }, ...explainNoFit(layout, fmt)),
-    );
+    children.push(el('div', { class: 'nup' }, 'Does not fit'), el('div', { class: 'panel warning' }, ...explainNoFit(layout, job, fmt, onFix)));
   } else {
-    container.replaceChildren(
-      el('div', { class: 'nup' }, `${layout.across * layout.down}-up`),
+    const count = layout.across * layout.down;
+    const autoCount = layout.auto.across * layout.auto.down;
+    children.push(
+      el('div', { class: 'nup' }, `${count}-up${count !== autoCount ? ` (auto would be ${autoCount})` : ''}`),
       el('p', { class: 'detail' }, `${layout.across} across × ${layout.down} down · ${steps.length} cuts`),
-      el('p', { class: 'detail' },
-        `Imposed ${fmt(layout.imposed.width)} × ${fmt(layout.imposed.length)} · margins ${fmt(layout.margins.left)} side, ${fmt(layout.margins.top)} head`),
     );
+    if (hasNpa(layout.npa)) children.push(el('p', { class: 'detail' }, `Printable ${fmt(layout.printable.width)} × ${fmt(layout.printable.length)}`));
+    const m = layout.margins;
+    children.push(el('p', { class: 'detail' },
+      `Imposed ${fmt(layout.imposed.width)} × ${fmt(layout.imposed.length)} · margins ${short(m.top)} head · ${short(m.bottom)} foot · ${short(m.left)} left · ${short(m.right)} right`));
+    for (const pair of [VERTICAL, HORIZONTAL]) {
+      const panel = violationPanel(layout, job, pair, { short, onFix });
+      if (panel) children.push(panel);
+    }
   }
-  if (suggestion && !hintDismissed) container.append(hintBox(suggestion, layout, { onApply, onDismiss }));
+  if (suggestion && !hintDismissed) children.push(hintBox(suggestion, layout, { onApply, onDismiss }));
+  container.replaceChildren(...children);
+}
+
+// One panel per axis with a violation. The first fix trusts the NPA and moves the
+// block (or restores the auto count); the second trusts the placement and shrinks
+// the NPA to what is actually there.
+function violationPanel(layout, job, pair, { short, onFix }) {
+  const hits = layout.violations.filter((v) => pair.includes(v.edge));
+  if (hits.length === 0) return null;
+  const edges = hits.map((v) => v.edge);
+  const axis = pair === VERTICAL ? 'down' : 'across';
+  const unitName = pair === VERTICAL ? 'row' : 'column';
+  const where = edges.length === 1 ? `${cap(edges[0])} ${unitName} sits` : `${cap(edges[0])} and ${edges[1]} ${unitName}s sit`;
+  const amount = Math.max(...hits.map((v) => v.amount));
+  const message = `${where} ${short(amount)} inside the non-printable area.`;
+
+  const offsetEdge = pair.find((edge) => edge in job.align);
+  const first = offsetEdge !== undefined
+    ? button(`Offset → ${short(layout.npa[offsetEdge])}`, () => onFix({ fix: 'offset', edge: offsetEdge, inches: layout.npa[offsetEdge] }))
+    : button(`Back to auto (${layout.auto[axis]} ${axis})`, () => onFix({ fix: 'count', axis }));
+  const values = Object.fromEntries(edges.map((edge) => [edge, layout.margins[edge]]));
+  const second = button(`NPA ${edges.join(' & ')} → ${short(values[edges[0]])}`, () => onFix({ fix: 'npa', values }));
+  return el('div', { class: 'panel warning' }, el('p', {}, message), el('div', { class: 'actions' }, first, second));
+}
+
+function explainNoFit(layout, job, fmt, onFix) {
+  const { sheet, doc, gutter, across, down, auto, imposed, margins } = layout;
+  const parts = [];
+  if (imposed && (imposed.width > sheet.width || imposed.length > sheet.length)) {
+    // A count the physical sheet cannot hold.
+    if (imposed.width > sheet.width) {
+      parts.push(el('p', {}, `${across} across won't fit: ${across} × ${fmt(doc.width)} + ${across - 1} × ${fmt(gutter.columns)} = ${fmt(imposed.width)}, sheet is ${fmt(sheet.width)}.`),
+        el('div', { class: 'actions' }, button(`Back to auto (${auto.across} across)`, () => onFix({ fix: 'count', axis: 'across' }))));
+    }
+    if (imposed.length > sheet.length) {
+      parts.push(el('p', {}, `${down} down won't fit: ${down} × ${fmt(doc.length)} + ${down - 1} × ${fmt(gutter.rows)} = ${fmt(imposed.length)}, sheet is ${fmt(sheet.length)}.`),
+        el('div', { class: 'actions' }, button(`Back to auto (${auto.down} down)`, () => onFix({ fix: 'count', axis: 'down' }))));
+    }
+  } else if (margins) {
+    // An offset pushed the block off the far edge.
+    for (const pair of [VERTICAL, HORIZONTAL]) {
+      const chosen = pair.find((edge) => edge in job.align);
+      const far = pair.find((edge) => edge !== chosen);
+      if (chosen !== undefined && margins[far] < 0) {
+        // The chosen edge's margin is the offset itself, already in inches.
+        parts.push(el('p', {}, `An offset of ${fmt(margins[chosen])} from the ${chosen} pushes the block ${fmt(-margins[far])} past the ${far} edge.`),
+          el('div', { class: 'actions' }, button('Offset → 0', () => onFix({ fix: 'offset', edge: chosen, inches: 0 }))));
+      }
+    }
+  } else {
+    // The document itself is bigger than the printable region. The gutter only sits
+    // between documents, so it never keeps the first one from fitting.
+    if (across < 1) parts.push(el('p', {}, `The document width (${fmt(doc.width)}) is wider than the printable width (${fmt(layout.printable.width)}).`));
+    if (down < 1) parts.push(el('p', {}, `The document length (${fmt(doc.length)}) is longer than the printable length (${fmt(layout.printable.length)}).`));
+    parts.push(el('p', {}, 'Turn the document, use a larger sheet, or reduce the non-printable area.'));
+  }
+  return parts;
 }
 
 // The tool reports what the sheet as entered does; a better turn is offered, never applied.
 function hintBox(suggestion, layout, { onApply, onDismiss }) {
   const what = suggestion.rotate === 'doc' ? 'document' : 'sheet';
-  const current = layout.across * layout.down;
-  const apply = el('button', { type: 'button' }, `Turn ${what}`);
-  apply.addEventListener('click', () => onApply(suggestion.rotate));
-  const dismiss = el('button', { type: 'button' }, 'Keep as entered');
-  dismiss.addEventListener('click', onDismiss);
+  const current = layout.fits ? layout.across * layout.down : 0;
   return el('div', { class: 'panel hint-box' },
     el('p', {}, `Turning the ${what} fits ${suggestion.count}-up${current > 0 ? ` instead of ${current}-up` : ''}.`),
-    el('div', { class: 'actions' }, apply, dismiss));
-}
-
-function explainNoFit({ sheet, doc, across, down }, fmt) {
-  // across is 0 exactly when the document is wider than the sheet; the gutter only
-  // applies between documents, so it never keeps the first one from fitting.
-  const lines = [];
-  if (across < 1) lines.push(`The document width (${fmt(doc.width)}) is wider than the sheet (${fmt(sheet.width)}).`);
-  if (down < 1) lines.push(`The document length (${fmt(doc.length)}) is longer than the sheet (${fmt(sheet.length)}).`);
-  lines.push('Turn the document, use a larger sheet, or use a smaller document.');
-  return lines.map((text) => el('p', {}, text));
+    el('div', { class: 'actions' },
+      button(`Turn ${what}`, () => onApply(suggestion.rotate)),
+      button('Keep as entered', onDismiss)));
 }
