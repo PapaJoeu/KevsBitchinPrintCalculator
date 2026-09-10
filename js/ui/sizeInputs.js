@@ -1,45 +1,50 @@
-// sizeInputs.js — one size section: preset chips, a Rotate button, and two fields
-// (revealed by a Custom chip, or always visible for the gutter).
+// sizeInputs.js — one size section: preset chips, two always-visible fields, and a
+// Rotate button. The fields are the truth; a chip is a shortcut that fills them.
 import { el } from './dom.js';
 import { parseMeasurement } from '../core/measure.js';
 
 /**
  * @param container  element to render into
- * @param options    { label, allowZero, keys, labels, alwaysShowFields, onChange }
+ * @param options    { label, allowZero, keys, labels, cols, zeroDisables, onChange }
  *   keys   — the two property names of the value, default ['width', 'length'];
  *            the gutter section uses ['columns', 'rows']
  *   labels — the two field labels, default ['Width', 'Length']
- *   alwaysShowFields — no Custom chip: the fields stay visible and chips fill them
+ *   cols   — chips per row, for the equal-width chip grid
+ *   zeroDisables — a {0,0} value greys the fields and Rotate (the gutter's None):
+ *            there is nothing to type and nothing to turn, so the controls say so.
  *   onChange(value) fires only with valid numbers. Invalid typing leaves the
- *   previous value in force and shows a hint under the fields.
+ *   previous value in force and shows a hint under the offending field.
  * @returns { setPresets(presets, value), setValue(value), rotate() }
  */
 export function createSizeInputs(container, {
   label, allowZero = false, keys = ['width', 'length'], labels = ['Width', 'Length'],
-  alwaysShowFields = false, onChange,
+  cols = 3, zeroDisables = false, onChange,
 }) {
   const [first, second] = keys;
   const same = (a, b) => a[first] === b[first] && a[second] === b[second];
   const chipText = (v) => v.label ?? (v[first] === 0 && v[second] === 0 ? 'None' : `${v[first]} × ${v[second]}`);
-  const chips = el('div', { class: 'chips', role: 'group', 'aria-label': `${label} presets` });
+  const chips = el('div', { class: 'chips', role: 'group', 'aria-label': `${label} presets`, style: `--cols: ${cols}` });
+
   const firstInput = el('input', { type: 'text', inputmode: 'decimal', autocomplete: 'off', 'aria-label': `${label} ${labels[0].toLowerCase()}` });
   const secondInput = el('input', { type: 'text', inputmode: 'decimal', autocomplete: 'off', 'aria-label': `${label} ${labels[1].toLowerCase()}` });
-  const fields = el('div', { class: 'custom', hidden: !alwaysShowFields },
-    el('label', {}, labels[0], firstInput),
-    el('span', { class: 'times' }, '×'),
-    el('label', {}, labels[1], secondInput));
-  const hint = el('p', { class: 'hint', hidden: true });
-  container.replaceChildren(el('fieldset', { class: 'group' }, el('legend', {}, label), chips, fields, hint));
+  const firstLabel = el('label', { class: 'field' }, labels[0], firstInput);
+  const secondLabel = el('label', { class: 'field' }, labels[1], secondInput);
+  const fields = el('div', { class: 'custom' }, firstLabel, el('span', { class: 'times' }, '×'), secondLabel);
+
+  // One hint per field, directly under the fields and named, so the worker never has
+  // to guess which of the two boxes the message is about.
+  const hints = [el('p', { class: 'hint', hidden: true }), el('p', { class: 'hint', hidden: true })];
+  const rotate = el('button', { type: 'button', dataset: { action: 'rotate' }, 'aria-label': `Rotate ${label.toLowerCase()}` }, `↻ Rotate ${label.toLowerCase()}`);
+  rotate.addEventListener('click', () => api.rotate());
+
+  container.replaceChildren(el('fieldset', { class: 'group section' },
+    el('legend', {}, label), chips, fields, ...hints, rotate));
 
   let presets = [];
   let value = { [first]: 1, [second]: 1 };
-  let customChip = null;
-
-  // Selection chips only — Rotate is an action, never "pressed".
-  const selectable = () => [...chips.children].filter((b) => !b.dataset.action);
 
   function press(button) {
-    for (const b of selectable()) b.setAttribute('aria-pressed', String(b === button));
+    for (const b of chips.children) b.setAttribute('aria-pressed', String(b === button));
   }
 
   function fill() {
@@ -47,69 +52,60 @@ export function createSizeInputs(container, {
     secondInput.value = String(value[second]);
   }
 
-  function showFields(show) {
-    const visible = show || alwaysShowFields;
-    fields.hidden = !visible;
-    if (visible) fill();
+  /** A zero value has nothing to type and nothing to turn: grey the controls. */
+  function applyDisabled() {
+    if (!zeroDisables) return;
+    const off = value[first] === 0 && value[second] === 0;
+    for (const input of [firstInput, secondInput]) input.disabled = off;
+    rotate.disabled = off;
+    firstLabel.classList.toggle('disabled', off);
+    secondLabel.classList.toggle('disabled', off);
+  }
+
+  function hideHints() {
+    for (const hint of hints) hint.hidden = true;
   }
 
   function renderChips() {
-    const buttons = presets.map((preset) => {
+    chips.replaceChildren(...presets.map((preset) => {
       const button = el('button', { type: 'button', 'aria-pressed': 'false' }, chipText(preset));
       button.addEventListener('click', () => {
         value = { [first]: preset[first], [second]: preset[second] };
         press(button);
-        showFields(false);
-        hint.hidden = true;
+        fill();
+        applyDisabled();
+        hideHints();
         onChange(value);
       });
       return button;
-    });
-    const rotate = el('button', { type: 'button', dataset: { action: 'rotate' }, 'aria-label': `Rotate ${label.toLowerCase()}` }, '↻ Rotate');
-    rotate.addEventListener('click', () => api.rotate());
-    if (alwaysShowFields) {
-      customChip = null;
-      chips.replaceChildren(...buttons, rotate);
-    } else {
-      customChip = el('button', { type: 'button', 'aria-pressed': 'false' }, 'Custom');
-      customChip.addEventListener('click', () => {
-        press(customChip);
-        showFields(true);
-        firstInput.focus();
-      });
-      chips.replaceChildren(...buttons, customChip, rotate);
-    }
+    }));
   }
 
-  // Press the chip matching the value; otherwise Custom (or, with always-visible fields, none).
+  /** Press the chip matching the value; a value matching none presses nothing. */
   function reflect() {
     const index = presets.findIndex((p) => same(p, value));
-    if (index >= 0) {
-      press(chips.children[index]);
-      showFields(false);
-    } else if (customChip) {
-      press(customChip);
-      showFields(true);
-    } else {
-      press(null);
-      fill();
-    }
+    press(index >= 0 ? chips.children[index] : null);
+    fill();
+    applyDisabled();
   }
 
   function readFields() {
-    const a = parseMeasurement(firstInput.value);
-    const b = parseMeasurement(secondInput.value);
+    const parsed = [parseMeasurement(firstInput.value), parseMeasurement(secondInput.value)];
     const valid = (n) => n !== null && (allowZero ? n >= 0 : n > 0);
-    if (!valid(a) || !valid(b)) {
-      hint.textContent = allowZero
-        ? 'Enter a number like 0.125 or 1/8, or 0 for no gutter.'
-        : 'Enter a number like 3.5 or 3 1/2.';
-      hint.hidden = false;
-      return;
-    }
-    hint.hidden = true;
-    value = { [first]: a, [second]: b };
-    if (alwaysShowFields) press(selectable()[presets.findIndex((p) => same(p, value))] ?? null);
+    let bad = false;
+    parsed.forEach((n, i) => {
+      const ok = valid(n);
+      hints[i].textContent = `${labels[i]}: ${allowZero
+        ? 'enter a number like 0.125 or 1/8, or 0 for no gutter.'
+        : 'enter a number like 3.5 or 3 1/2.'}`;
+      hints[i].hidden = ok;
+      if (!ok) bad = true;
+    });
+    if (bad) return;
+    value = { [first]: parsed[0], [second]: parsed[1] };
+    const index = presets.findIndex((p) => same(p, value));
+    press(index >= 0 ? chips.children[index] : null);
+    applyDisabled();
     onChange(value);
   }
   firstInput.addEventListener('input', readFields);
@@ -120,10 +116,12 @@ export function createSizeInputs(container, {
       presets = nextPresets;
       value = nextValue;
       renderChips();
+      hideHints();
       reflect();
     },
     setValue(nextValue) {
       value = nextValue;
+      hideHints();
       reflect();
     },
     /** Swap the two dimensions. The one change the section makes to its own value. */

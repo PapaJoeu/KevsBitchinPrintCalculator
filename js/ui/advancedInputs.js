@@ -25,15 +25,15 @@ export function createAdvancedInputs(container, { onChange }) {
   const field = (ariaLabel) => el('input', { type: 'text', inputmode: 'decimal', autocomplete: 'off', 'aria-label': ariaLabel });
 
   const npaInputs = Object.fromEntries(EDGES.map((edge) => [edge, field(`Non-printable ${edge}`)]));
-  const npaGrid = el('div', { class: 'npa-grid' }, ...EDGES.map((edge) => el('label', {}, cap(edge), npaInputs[edge])));
+  const npaGrid = el('div', { class: 'npa-grid' }, ...EDGES.map((edge) => el('label', { class: 'field' }, cap(edge), npaInputs[edge])));
 
   const acrossInput = field('Documents across');
   const downInput = field('Documents down');
   const countRow = el('div', { class: 'custom' },
-    el('label', {}, 'Across', acrossInput), el('span', { class: 'times' }, '×'), el('label', {}, 'Down', downInput));
+    el('label', { class: 'field' }, 'Across', acrossInput), el('span', { class: 'times' }, '×'), el('label', { class: 'field' }, 'Down', downInput));
 
   const chipRow = (pairs, pick) => {
-    const row = el('div', { class: 'chips' });
+    const row = el('div', { class: 'chips', style: '--cols: 3' });
     for (const [key, text] of pairs) {
       const button = el('button', { type: 'button', 'aria-pressed': 'false', dataset: { edge: key } }, text);
       button.addEventListener('click', () => pick(key));
@@ -42,22 +42,30 @@ export function createAdvancedInputs(container, { onChange }) {
     return row;
   };
   const axes = {
-    vertical: { pair: ['top', 'bottom'], chips: chipRow(VERTICAL, (key) => pickEdge(['top', 'bottom'], key)), input: field('Offset from the chosen edge'), label: el('span') },
-    horizontal: { pair: ['left', 'right'], chips: chipRow(HORIZONTAL, (key) => pickEdge(['left', 'right'], key)), input: field('Offset from the chosen edge'), label: el('span') },
+    vertical: { name: 'Vertical', pair: ['top', 'bottom'], chips: chipRow(VERTICAL, (key) => pickEdge(['top', 'bottom'], key)), input: field('Vertical offset'), label: el('span') },
+    horizontal: { name: 'Horizontal', pair: ['left', 'right'], chips: chipRow(HORIZONTAL, (key) => pickEdge(['left', 'right'], key)), input: field('Horizontal offset'), label: el('span') },
   };
-  for (const axis of Object.values(axes)) axis.row = el('div', { class: 'row', hidden: true }, el('label', {}, axis.label, axis.input));
+  // The offset field is always present, disabled when the axis is centred: a control
+  // that appears and disappears is harder to trust than one that greys out.
+  for (const axis of Object.values(axes)) {
+    axis.hint = el('p', { class: 'hint', hidden: true });
+    axis.field = el('label', { class: 'field' }, axis.label, axis.input);
+    axis.row = el('div', {}, axis.field);
+  }
 
-  const hint = el('p', { class: 'hint', hidden: true });
+  const npaHint = el('p', { class: 'hint', hidden: true });
+  const countHint = el('p', { class: 'hint', hidden: true });
   const summary = el('span', { class: 'advanced-summary' });
   const caret = el('span', { class: 'caret' }, '▸');
-  const disclosure = el('button', { type: 'button', class: 'disclosure', 'aria-expanded': 'false' }, caret, ' Advanced ', summary);
+  const disclosure = el('button', { type: 'button', class: 'disclosure', 'aria-expanded': 'false' },
+    el('span', { class: 'disclosure-title' }, caret, ' Advanced'), summary);
+  const group = (legend, ...children) => el('fieldset', { class: 'group' }, el('legend', {}, legend), ...children);
   const body = el('div', { class: 'advanced-body', hidden: true },
-    el('p', { class: 'section-label' }, 'Non-printable area'), npaGrid,
-    el('p', { class: 'section-label' }, 'Count'), countRow,
-    el('p', { class: 'section-label' }, 'Alignment'),
-    el('div', { class: 'row' }, el('span', { class: 'row-label' }, 'Vertical'), axes.vertical.chips), axes.vertical.row,
-    el('div', { class: 'row' }, el('span', { class: 'row-label' }, 'Horizontal'), axes.horizontal.chips), axes.horizontal.row,
-    hint);
+    group('Non-printable area', npaGrid, npaHint),
+    group('Count', countRow, countHint),
+    group('Alignment',
+      el('div', { class: 'field' }, axes.vertical.name, axes.vertical.chips), axes.vertical.row, axes.vertical.hint,
+      el('div', { class: 'field' }, axes.horizontal.name, axes.horizontal.chips), axes.horizontal.row, axes.horizontal.hint));
   disclosure.addEventListener('click', () => {
     const open = body.hidden;
     body.hidden = !open;
@@ -85,12 +93,13 @@ export function createAdvancedInputs(container, { onChange }) {
     for (const axis of Object.values(axes)) {
       const chosen = chosenEdge(axis.pair);
       for (const b of axis.chips.children) b.setAttribute('aria-pressed', String(b.dataset.edge === chosen));
-      axis.row.hidden = chosen === 'center';
-      if (chosen !== 'center') {
-        axis.label.textContent = `Offset from ${chosen}`;
-        // Never rewrite a field the worker is typing in.
-        if (document.activeElement !== axis.input) axis.input.value = String(value.align[chosen]);
-      }
+      const centred = chosen === 'center';
+      axis.label.textContent = centred ? 'Offset' : `Offset from ${chosen}`;
+      axis.input.disabled = centred;
+      axis.input.placeholder = centred ? 'Centered' : '';
+      axis.field.classList.toggle('disabled', centred);
+      // Never rewrite a field the worker is typing in.
+      if (document.activeElement !== axis.input) axis.input.value = centred ? '' : String(value.align[chosen]);
     }
     acrossInput.placeholder = `Auto (${auto.across})`;
     downInput.placeholder = `Auto (${auto.down})`;
@@ -101,11 +110,11 @@ export function createAdvancedInputs(container, { onChange }) {
     npaInputs[edge].addEventListener('input', () => {
       const n = parseMeasurement(npaInputs[edge].value);
       if (n === null) {
-        hint.textContent = `Non-printable ${edge}: enter a number like 1/16, or 0.`;
-        hint.hidden = false;
+        npaHint.textContent = `Non-printable ${edge}: enter a number like 1/16, or 0.`;
+        npaHint.hidden = false;
         return;
       }
-      hint.hidden = true;
+      npaHint.hidden = true;
       emit({ npa: { ...value.npa, [edge]: n } });
     });
   }
@@ -119,13 +128,13 @@ export function createAdvancedInputs(container, { onChange }) {
       } else {
         const n = Number(text);
         if (!(Number.isInteger(n) && n >= 1)) {
-          hint.textContent = `${cap(key)}: enter a whole number, or clear it for auto.`;
-          hint.hidden = false;
+          countHint.textContent = `${cap(key)}: enter a whole number, or clear it for auto.`;
+          countHint.hidden = false;
           return;
         }
         count[key] = n;
       }
-      hint.hidden = true;
+      countHint.hidden = true;
       emit({ count });
     });
   }
@@ -136,11 +145,11 @@ export function createAdvancedInputs(container, { onChange }) {
       if (edge === 'center') return;
       const n = parseMeasurement(axis.input.value);
       if (n === null) {
-        hint.textContent = `Offset from ${edge}: enter a number like 0 or 1/4.`;
-        hint.hidden = false;
+        axis.hint.textContent = `Offset from ${edge}: enter a number like 0 or 1/4.`;
+        axis.hint.hidden = false;
         return;
       }
-      hint.hidden = true;
+      axis.hint.hidden = true;
       emit({ align: { ...value.align, [edge]: n } });
     });
   }
@@ -156,7 +165,9 @@ export function createAdvancedInputs(container, { onChange }) {
       }
       if (document.activeElement !== acrossInput) acrossInput.value = value.count.across ?? '';
       if (document.activeElement !== downInput) downInput.value = value.count.down ?? '';
-      hint.hidden = true;
+      npaHint.hidden = true;
+      countHint.hidden = true;
+      for (const axis of Object.values(axes)) axis.hint.hidden = true;
       reflect();
     },
     setAuto(nextAuto) {

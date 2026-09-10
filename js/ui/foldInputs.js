@@ -14,8 +14,8 @@ export function createFoldInputs(container, { onChange }) {
   let unit = 'in';
   let docSize = { width: 1, length: 1 };
 
-  const chipRow = (pairs, attr, pick) => {
-    const row = el('div', { class: 'chips' });
+  const chipRow = (pairs, attr, pick, cols) => {
+    const row = el('div', { class: 'chips', style: `--cols: ${cols}` });
     for (const [key, label] of pairs) {
       const button = el('button', { type: 'button', 'aria-pressed': 'false', dataset: { [attr]: key } }, label);
       button.addEventListener('click', () => pick(key));
@@ -23,21 +23,21 @@ export function createFoldInputs(container, { onChange }) {
     }
     return row;
   };
-  const styleChips = chipRow(STYLES, 'style', (style) => emit({ style }));
-  const axisChips = chipRow(AXES, 'axis', (axis) => emit({ axis }));
+  const styleChips = chipRow(STYLES, 'style', (style) => emit({ style }), 4);
+  const axisChips = chipRow(AXES, 'axis', (axis) => emit({ axis }), 2);
 
   const allowanceInput = el('input', { type: 'text', inputmode: 'decimal', autocomplete: 'off', 'aria-label': 'Wrap allowance' });
-  const allowanceRow = el('div', { class: 'row', hidden: true }, el('label', {}, 'Wrap allowance off the tucked panel', allowanceInput));
+  const allowanceRow = el('label', { class: 'field', hidden: true }, 'Wrap allowance off the tucked panel', allowanceInput);
   const customInput = el('input', { type: 'text', inputmode: 'decimal', autocomplete: 'off', 'aria-label': 'Custom score offset' });
   const addButton = el('button', { type: 'button' }, 'Add');
-  const customRow = el('div', { class: 'row' }, el('label', {}, 'Custom score, from the head of each document', customInput), addButton);
-  const customList = el('div', { class: 'chips' });
+  const customRow = el('div', { class: 'row' }, el('label', { class: 'field' }, 'Custom score, from the head of each document', customInput), addButton);
+  const customList = el('div', { class: 'chips', style: '--cols: 2' });
   const hint = el('p', { class: 'hint', hidden: true });
 
-  container.replaceChildren(el('fieldset', { class: 'group' },
+  container.replaceChildren(el('fieldset', { class: 'group section wide' },
     el('legend', {}, 'Scoring'),
     styleChips,
-    el('div', { class: 'row' }, el('span', {}, 'Fold across'), axisChips),
+    el('div', { class: 'field' }, 'Fold across', axisChips),
     allowanceRow,
     customRow,
     customList,
