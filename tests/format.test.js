@@ -22,12 +22,12 @@ test('names units', () => {
   assert.equal(unitName('mm'), 'millimetres');
 });
 
-test('describes each kind of step', () => {
-  const step = (axis, kind) => ({ n: 1, axis, position: 0, kind, turnBefore: false });
-  assert.equal(stepNote(step('L', 'square')), 'Square up: trim head');
-  assert.equal(stepNote(step('W', 'square')), 'Square up: trim side');
-  assert.equal(stepNote(step('L', 'block')), 'Trim to imposed length');
-  assert.equal(stepNote(step('W', 'block')), 'Trim to imposed width');
-  assert.equal(stepNote(step('W', 'ladder')), 'Cut off next strip');
-  assert.equal(stepNote(step('L', 'trim')), 'Trim gutter');
+test('describes each kind of step by what it removes', () => {
+  const step = (kind, extra = {}) => ({ n: 1, axis: 'L', position: 0, kind, turnBefore: false, ...extra });
+  assert.equal(stepNote(step('margin', { edge: 'top' })), 'Trim top margin');
+  assert.equal(stepNote(step('margin', { edge: 'left' })), 'Trim left margin');
+  assert.equal(stepNote(step('margin', { edge: 'bottom' })), 'Trim bottom margin');
+  assert.equal(stepNote(step('margin', { edge: 'right' })), 'Trim right margin');
+  assert.equal(stepNote(step('strip')), 'Cut off next strip');
+  assert.equal(stepNote(step('gutter')), 'Trim gutter');
 });

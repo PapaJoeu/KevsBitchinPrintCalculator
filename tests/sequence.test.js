@@ -4,7 +4,8 @@ import { computeLayout } from '../js/core/layout.js';
 import { computeSequence } from '../js/core/sequence.js';
 
 const size = (width, length) => ({ width, length });
-const EIGHTH = size(0.125, 0.125);
+const gutter = (columns, rows) => ({ columns, rows });
+const EIGHTH = gutter(0.125, 0.125);
 const cuts = (steps) => steps.map((s) => [s.axis, s.position]);
 
 // User-verified by hand. See spec "Verified fixtures". Do not edit these numbers.
@@ -35,13 +36,14 @@ test('an axis with n documents ends with n cuts at the document dimension', () =
   assert.equal(at('W', 3.5), 3); // 3 columns
 });
 
-test('kinds run square, block, then ladder and trim per axis', () => {
+test('kinds name what each cut removes: four margins, then strips and gutters per axis', () => {
   const steps = computeSequence(computeLayout(size(12, 18), size(3.5, 2), EIGHTH));
-  const kinds = steps.map((s) => s.kind);
-  assert.deepEqual(kinds.slice(0, 4), ['square', 'square', 'block', 'block']);
-  assert.deepEqual(kinds.slice(4, 8), ['ladder', 'ladder', 'trim', 'trim']);
-  assert.deepEqual(kinds.slice(8, 15), Array(7).fill('ladder'));
-  assert.deepEqual(kinds.slice(15), Array(7).fill('trim'));
+  assert.deepEqual(steps.slice(0, 4).map((s) => [s.kind, s.edge]),
+    [['margin', 'top'], ['margin', 'left'], ['margin', 'bottom'], ['margin', 'right']]);
+  assert.deepEqual(steps.slice(4, 8).map((s) => s.kind), ['strip', 'strip', 'gutter', 'gutter']);
+  assert.deepEqual(steps.slice(8, 15).map((s) => s.kind), Array(7).fill('strip'));
+  assert.deepEqual(steps.slice(15).map((s) => s.kind), Array(7).fill('gutter'));
+  assert.ok(steps.slice(4).every((s) => !('edge' in s)), 'only margin cuts carry an edge');
 });
 
 test('steps are numbered from 1 and flag a turn whenever the axis changes', () => {
@@ -64,19 +66,19 @@ test('axis order follows the sheet as entered: an 18x12 sheet starts from the 12
 
 test('a single-document axis gets no gutter trim', () => {
   const steps = computeSequence(computeLayout(size(12, 18), size(11, 8.5), EIGHTH));
-  assert.equal(steps.filter((s) => s.axis === 'W' && s.kind === 'trim').length, 0);
+  assert.equal(steps.filter((s) => s.axis === 'W' && s.kind === 'gutter').length, 0);
 });
 
 test('a zero gutter needs no trims: the ladder alone separates the pieces', () => {
-  const steps = computeSequence(computeLayout(size(8.5, 11), size(4.25, 5.5), size(0, 0)));
+  const steps = computeSequence(computeLayout(size(8.5, 11), size(4.25, 5.5), gutter(0, 0)));
   assert.deepEqual(cuts(steps), [['L', 11], ['W', 8.5], ['L', 11], ['W', 8.5], ['W', 4.25], ['L', 5.5]]);
 });
 
 test('each axis uses its own gutter: a 1/4" side gutter with no gutter between rows', () => {
-  const steps = computeSequence(computeLayout(size(12, 18), size(3.5, 2), size(0.25, 0)));
+  const steps = computeSequence(computeLayout(size(12, 18), size(3.5, 2), gutter(0.25, 0)));
   // 3 columns separated by a 1/4" gutter need trims; 9 rows with no gutter need none.
-  assert.equal(steps.filter((s) => s.axis === 'W' && s.kind === 'trim').length, 2);
-  assert.equal(steps.filter((s) => s.axis === 'L' && s.kind === 'trim').length, 0);
+  assert.equal(steps.filter((s) => s.axis === 'W' && s.kind === 'gutter').length, 2);
+  assert.equal(steps.filter((s) => s.axis === 'L' && s.kind === 'gutter').length, 0);
   assert.deepEqual(cuts(steps).slice(4, 8), [['W', 7.25], ['W', 3.5], ['W', 3.5], ['W', 3.5]]);
 });
 

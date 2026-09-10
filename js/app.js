@@ -25,7 +25,10 @@ const state = {
 const sections = {
   sheet: createSizeInputs($('sheetInputs'), { label: 'Sheet', onChange: (sheet) => update({ sheet }) }),
   doc: createSizeInputs($('docInputs'), { label: 'Document', onChange: (doc) => update({ doc }) }),
-  gutter: createSizeInputs($('gutterInputs'), { label: 'Gutter', allowZero: true, onChange: (gutter) => update({ gutter }) }),
+  gutter: createSizeInputs($('gutterInputs'), {
+    label: 'Gutter', allowZero: true, keys: ['columns', 'rows'], labels: ['Between columns', 'Between rows'],
+    onChange: (gutter) => update({ gutter }),
+  }),
 };
 const foldInputs = createFoldInputs($('foldInputs'), { onChange: (fold) => update({ fold }) });
 const sheetView = createSheetView($('canvas'));
@@ -37,7 +40,7 @@ const sizeToInches = (size) => ({ width: toInches(size.width), length: toInches(
 function compute(job) {
   const sheet = sizeToInches(job.sheet);
   const doc = sizeToInches(job.doc);
-  const gutter = sizeToInches(job.gutter);
+  const gutter = { columns: toInches(job.gutter.columns), rows: toInches(job.gutter.rows) };
   const layout = computeLayout(sheet, doc, gutter);
   const suggestion = suggestOrientation(sheet, doc, gutter);
   if (!layout.fits) return { layout, suggestion, steps: [], scores: NO_SCORES };

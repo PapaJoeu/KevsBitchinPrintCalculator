@@ -6,12 +6,12 @@
 
 const EPSILON = 1e-9;
 
-function assertSize(name, size, { allowZero }) {
-  for (const dim of ['width', 'length']) {
-    const value = size[dim];
+function assertPositive(name, obj, keys, { allowZero }) {
+  for (const key of keys) {
+    const value = obj[key];
     const ok = Number.isFinite(value) && (allowZero ? value >= 0 : value > 0);
     if (!ok) {
-      throw new RangeError(`${name}.${dim} must be ${allowZero ? 'zero or more' : 'greater than zero'}, got ${value}`);
+      throw new RangeError(`${name}.${key} must be ${allowZero ? 'zero or more' : 'greater than zero'}, got ${value}`);
     }
   }
 }
@@ -25,22 +25,22 @@ function countAlong(sheetSize, docSize, gutterSize) {
 /**
  * @param sheet   { width, length } inches, both > 0
  * @param doc     { width, length } inches, both > 0
- * @param gutter  { width, length } inches, both >= 0; width is between columns, length between rows
+ * @param gutter  { columns, rows } inches, both >= 0: the gutter between columns, and between rows
  */
 export function computeLayout(sheet, doc, gutter) {
-  assertSize('sheet', sheet, { allowZero: false });
-  assertSize('doc', doc, { allowZero: false });
-  assertSize('gutter', gutter, { allowZero: true });
+  assertPositive('sheet', sheet, ['width', 'length'], { allowZero: false });
+  assertPositive('doc', doc, ['width', 'length'], { allowZero: false });
+  assertPositive('gutter', gutter, ['columns', 'rows'], { allowZero: true });
 
-  const across = countAlong(sheet.width, doc.width, gutter.width);
-  const down = countAlong(sheet.length, doc.length, gutter.length);
+  const across = countAlong(sheet.width, doc.width, gutter.columns);
+  const down = countAlong(sheet.length, doc.length, gutter.rows);
   if (across < 1 || down < 1) {
     return { fits: false, across, down, sheet, doc, gutter };
   }
 
   const imposed = {
-    width: doc.width * across + gutter.width * (across - 1),
-    length: doc.length * down + gutter.length * (down - 1),
+    width: doc.width * across + gutter.columns * (across - 1),
+    length: doc.length * down + gutter.rows * (down - 1),
   };
   const margins = {
     left: (sheet.width - imposed.width) / 2,
@@ -50,8 +50,8 @@ export function computeLayout(sheet, doc, gutter) {
   for (let row = 0; row < down; row++) {
     for (let col = 0; col < across; col++) {
       docs.push({
-        x: margins.left + col * (doc.width + gutter.width),
-        y: margins.top + row * (doc.length + gutter.length),
+        x: margins.left + col * (doc.width + gutter.columns),
+        y: margins.top + row * (doc.length + gutter.rows),
         width: doc.width,
         length: doc.length,
       });

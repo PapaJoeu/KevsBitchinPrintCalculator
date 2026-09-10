@@ -4,7 +4,8 @@ import { computeLayout } from '../js/core/layout.js';
 import { computeScores, foldOffsets, DEFAULT_WRAP_ALLOWANCE } from '../js/core/scores.js';
 
 const size = (width, length) => ({ width, length });
-const EIGHTH = size(0.125, 0.125);
+const gutter = (columns, rows) => ({ columns, rows });
+const EIGHTH = gutter(0.125, 0.125);
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} != ${expected}`);
 const closeAll = (actual, expected) => {
   assert.equal(actual.length, expected.length, `length ${actual.length} != ${expected.length}`);

@@ -9,7 +9,7 @@ test('12x18 and 13x19 lead the sheet presets', () => {
 test('the default job is the business card on 12x18 with 1/8" gutters', () => {
   assert.deepEqual(DEFAULTS.in.sheet, { width: 12, length: 18 });
   assert.deepEqual(DEFAULTS.in.doc, { width: 3.5, length: 2 });
-  assert.deepEqual(DEFAULTS.in.gutter, { width: 0.125, length: 0.125 });
+  assert.deepEqual(DEFAULTS.in.gutter, { columns: 0.125, rows: 0.125 });
 });
 
 test('every default size is one of its unit presets, so a chip is pressed on open', () => {

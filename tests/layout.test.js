@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { computeLayout, suggestOrientation } from '../js/core/layout.js';
 
 const size = (width, length) => ({ width, length });
-const EIGHTH = size(0.125, 0.125);
+const gutter = (columns, rows) => ({ columns, rows });
+const EIGHTH = gutter(0.125, 0.125);
 
 test('business card: 3.5x2 on 12x18 with 1/8" gutters is 3 across x 8 down', () => {
   const layout = computeLayout(size(12, 18), size(3.5, 2), EIGHTH);
@@ -36,7 +37,7 @@ test('orientation is taken as entered: 8.5x11 on 12x18 is 1-up, never rotated to
 });
 
 test('zero gutter fills the sheet exactly with zero margins', () => {
-  const layout = computeLayout(size(8.5, 11), size(4.25, 5.5), size(0, 0));
+  const layout = computeLayout(size(8.5, 11), size(4.25, 5.5), gutter(0, 0));
   assert.equal(layout.across, 2);
   assert.equal(layout.down, 2);
   assert.deepEqual(layout.margins, { left: 0, top: 0 });
@@ -44,7 +45,7 @@ test('zero gutter fills the sheet exactly with zero margins', () => {
 
 test('an exact fit is not lost to floating point', () => {
   // 0.3 / 0.1 is 2.9999999999999996 in floating point; three still fit.
-  const layout = computeLayout(size(0.3, 0.3), size(0.1, 0.1), size(0, 0));
+  const layout = computeLayout(size(0.3, 0.3), size(0.1, 0.1), gutter(0, 0));
   assert.equal(layout.across, 3);
 });
 
@@ -53,7 +54,7 @@ test('reports what does not fit instead of throwing', () => {
   assert.equal(tooWide.fits, false);
   assert.equal(tooWide.across, 0);
   assert.equal(tooWide.down, 8);
-  const tooLong = computeLayout(size(8.5, 5.5), size(8.5, 11), size(0, 0));
+  const tooLong = computeLayout(size(8.5, 5.5), size(8.5, 11), gutter(0, 0));
   assert.deepEqual([tooLong.fits, tooLong.across, tooLong.down], [false, 1, 0]);
 });
 
@@ -79,10 +80,10 @@ test('prefers turning the document over the sheet on a tie', () => {
 
 test('suggests turning the sheet when only that helps', () => {
   // Unequal gutters make the two turns differ: as entered 21-up, doc turned 20-up, sheet turned 25-up.
-  assert.deepEqual(suggestOrientation(size(12, 18), size(3.5, 2), size(0.125, 0.5)), { rotate: 'sheet', count: 25 });
+  assert.deepEqual(suggestOrientation(size(12, 18), size(3.5, 2), gutter(0.125, 0.5)), { rotate: 'sheet', count: 25 });
 });
 
 test('still suggests a turn when nothing fits as entered', () => {
-  assert.deepEqual(suggestOrientation(size(8.5, 5.5), size(8.5, 5), size(0, 0)), null);
-  assert.deepEqual(suggestOrientation(size(12, 6), size(5, 10), size(0, 0)), { rotate: 'doc', count: 1 });
+  assert.deepEqual(suggestOrientation(size(8.5, 5.5), size(8.5, 5), gutter(0, 0)), null);
+  assert.deepEqual(suggestOrientation(size(12, 6), size(5, 10), gutter(0, 0)), { rotate: 'doc', count: 1 });
 });

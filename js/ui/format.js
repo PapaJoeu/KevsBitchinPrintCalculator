@@ -16,13 +16,12 @@ export function unitName(unit) {
   return unit === 'mm' ? 'millimetres' : 'inches';
 }
 
-/** A short note describing what a sequence step does. */
+/** A short note describing what a sequence step removes. */
 export function stepNote(step) {
   switch (step.kind) {
-    case 'square': return step.axis === 'L' ? 'Square up: trim head' : 'Square up: trim side';
-    case 'block': return step.axis === 'L' ? 'Trim to imposed length' : 'Trim to imposed width';
-    case 'ladder': return 'Cut off next strip';
-    case 'trim': return 'Trim gutter';
+    case 'margin': return `Trim ${step.edge} margin`;
+    case 'strip': return 'Cut off next strip';
+    case 'gutter': return 'Trim gutter';
     default: return '';
   }
 }
