@@ -12,6 +12,9 @@ import { renderSequence } from './ui/sequenceView.js';
 import { renderScores } from './ui/scoresView.js';
 import { createSheetView } from './ui/sheetView.js';
 import { formatShort } from './ui/format.js';
+import { createTabs } from './ui/tabs.js';
+import { createCopyLink } from './ui/copyLink.js';
+import { encodeJob } from './core/share.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -35,6 +38,15 @@ const foldInputs = createFoldInputs($('foldInputs'), { onChange: (fold) => updat
 const advancedInputs = createAdvancedInputs($('advancedInputs'), { onChange: (patch) => update(patch) });
 const sheetView = createSheetView($('canvas'));
 const NO_SCORES = { offsets: [], positions: [], segments: [] };
+
+const TABS = [{ id: 'calculator', label: 'Calculator' }, { id: 'history', label: 'History' }, { id: 'preferences', label: 'Preferences' }];
+const tabs = createTabs($('tabs'), TABS, { onSelect: showTab });
+$('shareBar').append(createCopyLink(() => `${window.location.origin}${window.location.pathname}#${encodeJob(state.unit, state.job, DEFAULTS[state.unit])}`));
+
+function showTab(id) {
+  for (const tab of TABS) $(`panel-${tab.id}`).hidden = tab.id !== id;
+  tabs.select(id);
+}
 
 const toInches = (value) => (state.unit === 'mm' ? mmToInches(value) : value);
 const sizeToInches = (size) => ({ width: toInches(size.width), length: toInches(size.length) });
@@ -140,6 +152,7 @@ for (const button of $('unitChips').children) {
   button.addEventListener('click', () => setUnit(button.dataset.unit));
 }
 
+showTab('calculator');
 setUnit('in');
 
 // Offline shell. When a new version takes over an open page, reload once to run it.

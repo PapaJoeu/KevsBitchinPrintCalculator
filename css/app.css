@@ -149,3 +149,85 @@ table.scores th { background: var(--face); font-weight: normal; }
 .npa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .npa-grid label { display: grid; gap: 2px; font-size: 12px; }
 .row-label { min-width: 5.5em; font-size: 12px; }
+
+/* Tabs: the Win98 tabbed dialog. The selected tab stands taller and joins its panel. */
+.tabs { display: flex; align-items: flex-end; gap: 2px; padding: 6px 4px 0; }
+.tabs button[role="tab"] {
+  flex: 1 0 auto;
+  min-height: 36px;
+  margin-bottom: 2px;
+  padding: 4px 10px 6px;
+  background: var(--light);
+  border-bottom: 0;
+  box-shadow: inset -1px 0 var(--shadow), inset 1px 1px var(--highlight);
+}
+.tabs button[role="tab"]:active { padding: 4px 10px 6px; }
+.tabs button[aria-selected="true"] {
+  min-height: 40px;
+  margin-bottom: 0;
+  padding-bottom: 8px;
+  background: var(--face);
+  position: relative;
+  z-index: 1;
+}
+section[role="tabpanel"] { border-top: 2px solid var(--highlight); }
+.tabs .badge {
+  display: inline-block;
+  min-width: 1.4em;
+  margin-left: 6px;
+  padding: 0 4px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--highlight);
+  background: var(--navy);
+}
+.view { padding: 8px 2px 2px; }
+
+/* Share */
+.share { margin-top: 2px; }
+.copy-link-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.copy-link-wrap input { flex: 1 1 12em; min-width: 0; }
+
+/* History rows: the body is one flat tap target; actions sit to the right */
+.history { display: grid; gap: 6px; }
+.history-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  padding: 6px;
+  background: var(--highlight);
+  border: 1px solid var(--shadow);
+}
+.history-open, .history-open:active {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 4px 6px;
+  text-align: left;
+  background: var(--highlight);
+  border: 0;
+  box-shadow: none;
+}
+.history-open .nup { font-size: 22px; font-weight: bold; line-height: 1.1; }
+.history-open .line { font-size: 13px; }
+.history-open .extra { font-size: 12px; color: var(--navy); }
+.history-open .when { font-size: 12px; color: var(--shadow); }
+.history-open .unit-badge {
+  margin-left: 6px;
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: normal;
+  vertical-align: middle;
+  border: 1px solid var(--shadow);
+}
+.history-actions { display: grid; gap: 4px; align-content: start; }
+.empty { margin: 4px 0; font-size: 13px; }
+
+/* Preferences */
+.pref { display: grid; gap: 4px; margin-bottom: 12px; }
+.pref-label { font-size: 13px; font-weight: bold; }
+.pref .note { margin: 0; font-size: 12px; color: var(--shadow); }
+
+@media (min-width: 900px) {
+  .view { max-width: 640px; }
+}
