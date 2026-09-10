@@ -200,9 +200,18 @@ def main():
             params["clip"] = {"x": b["x"], "y": b["y"], "width": b["w"],
                               "height": b["h"], "scale": 1}
         elif full:
+            # Chrome's screenshot encoder has an internal size ceiling (observed
+            # error: "Page is too large"); cap well under it rather than pass an
+            # unbounded scrollHeight that grows every time the page grows.
             page_height = cdp.js("document.documentElement.scrollHeight")
             params["clip"] = {"x": 0, "y": 0, "width": width,
-                              "height": min(int(page_height), 8000), "scale": 1}
+                              "height": min(int(page_height), 4000), "scale": 1}
+        else:
+            # No --clip and no --full: capture exactly the requested viewport, not
+            # the whole scrollable page. Without an explicit height cap this hit
+            # the same "Page is too large" ceiling once the page grew past a few
+            # thousand px, so the default must stay viewport-sized.
+            params["clip"] = {"x": 0, "y": 0, "width": width, "height": height, "scale": 1}
 
         shot = cdp.call("Page.captureScreenshot", params)
         with open(out, "wb") as fh:
