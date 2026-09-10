@@ -44,7 +44,13 @@ const state = {
   hintDismissed: false,
   tab: 'calculator',
   prefs: storage.loadPrefs() ?? { ...DEFAULT_PREFS },
-  history: storage.loadHistory().filter((entry) => Number.isFinite(entry?.at) && sanitize(entry.unit, entry.job) !== null),
+  // Adopt what sanitize returns, not the raw stored job: an entry that is merely
+  // close enough to survive the codec would otherwise keep its stale shape, dodging
+  // recordJob's dedupe and breaking anything that later re-encodes it.
+  history: storage.loadHistory().flatMap((entry) => {
+    const clean = Number.isFinite(entry?.at) ? sanitize(entry.unit, entry.job) : null;
+    return clean ? [{ unit: clean.unit, job: clean.job, at: entry.at }] : [];
+  }),
 };
 let settleTimer = null;
 
@@ -179,8 +185,12 @@ function applyFix(action) {
  * The one path by which a job reaches the inputs — a shared link, a history entry,
  * the resumed job, or the unit toggle. Sets the unit, replaces the job, re-arms the
  * hint, and pushes the values into every section.
+ *
+ * `remember: false` loads the job without adopting it as "where I was": a colleague's
+ * shared link must not overwrite the worker's own unfinished job in `last`. The settle
+ * timer still runs either way — a shared job left sitting is still worth recording.
  */
-function loadJob(unit, job) {
+function loadJob(unit, job, { remember = true } = {}) {
   state.unit = unit;
   state.job = structuredClone(job);
   state.hintDismissed = false;
@@ -191,7 +201,11 @@ function loadJob(unit, job) {
     button.setAttribute('aria-pressed', String(button.dataset.unit === unit));
   }
   render();
-  afterChange();
+  if (remember) afterChange();
+  else {
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(recordSettled, SETTLE_MS);
+  }
 }
 
 /** A new unit is a new job: reset to that unit's defaults (jobs are entered fresh). */
@@ -217,7 +231,7 @@ for (const button of $('unitChips').children) {
 const shared = decodeJob(window.location.hash, DEFAULTS);
 const last = state.prefs.resume ? storage.loadLast() : null;
 const resumed = last ? sanitize(last.unit, last.job) : null;
-if (shared) loadJob(shared.unit, shared.job);
+if (shared) loadJob(shared.unit, shared.job, { remember: false });
 else if (resumed) loadJob(resumed.unit, resumed.job);
 else loadJob(state.prefs.unit, DEFAULTS[state.prefs.unit]);
 showTab('calculator');
