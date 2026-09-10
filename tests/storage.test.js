@@ -47,6 +47,15 @@ test('a document with another version, or one that does not parse, is absent', (
   assert.deepEqual(s.loadHistory(), []);
 });
 
+test('history entries that are not entry-shaped are filtered out, not passed through', () => {
+  const job = { sheet: { width: 12, length: 18 } };
+  const s = createStorage(fakeStore({ seed: { 'printcalc.history': JSON.stringify({
+    v: 1,
+    entries: ['nope', 42, null, { garbage: true }, { unit: 'in', job, at: 5 }],
+  }) } }));
+  assert.deepEqual(s.loadHistory(), [{ unit: 'in', job, at: 5 }]);
+});
+
 test('prefs with the wrong shape are absent', () => {
   const s = createStorage(fakeStore({ seed: { 'printcalc.prefs': JSON.stringify({ v: 1, unit: 'cm', resume: 'yes' }) } }));
   assert.equal(s.loadPrefs(), null);

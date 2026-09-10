@@ -70,7 +70,8 @@ export function createStorage(store) {
     clearLast: () => remove(KEYS.last),
     loadHistory() {
       const doc = read(KEYS.history);
-      return doc && Array.isArray(doc.entries) ? doc.entries : [];
+      if (!doc || !Array.isArray(doc.entries)) return [];
+      return doc.entries.filter((e) => e && typeof e === 'object' && UNITS.includes(e.unit) && e.job && typeof e.job === 'object' && Number.isFinite(e.at));
     },
     saveHistory: (entries) => write(KEYS.history, { entries }),
   };
