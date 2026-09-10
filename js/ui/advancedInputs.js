@@ -4,7 +4,7 @@
 // never hide behind a closed panel.
 import { el } from './dom.js';
 import { parseMeasurement } from '../core/measure.js';
-import { formatFraction } from './format.js';
+import { describeAdvanced } from './format.js';
 
 const EDGES = ['top', 'bottom', 'left', 'right'];
 const VERTICAL = [['top', 'Top'], ['center', 'Center'], ['bottom', 'Bottom']];
@@ -81,20 +81,6 @@ export function createAdvancedInputs(container, { onChange }) {
     onChange(patch);
   }
 
-  const fmt = (n) => (unit === 'in' ? formatFraction(n) : String(n));
-
-  function describe() {
-    const npaValues = EDGES.map((e) => value.npa[e]);
-    const npaText = npaValues.every((v) => v === npaValues[0])
-      ? `NPA ${fmt(npaValues[0])} all round`
-      : `NPA ${EDGES.filter((e) => value.npa[e] !== defaultNpa).map((e) => `${e} ${fmt(value.npa[e])}`).join(', ')}`;
-    const countParts = [];
-    if (value.count.across !== undefined) countParts.push(`${value.count.across} across`);
-    if (value.count.down !== undefined) countParts.push(`${value.count.down} down`);
-    const alignParts = EDGES.filter((e) => e in value.align).map((e) => `${cap(e)} +${fmt(value.align[e])}`);
-    return `${npaText} · ${countParts.length ? countParts.join(' × ') : 'Auto'} · ${alignParts.length ? alignParts.join(' · ') : 'Centered'}`;
-  }
-
   function reflect() {
     for (const axis of Object.values(axes)) {
       const chosen = chosenEdge(axis.pair);
@@ -108,7 +94,7 @@ export function createAdvancedInputs(container, { onChange }) {
     }
     acrossInput.placeholder = `Auto (${auto.across})`;
     downInput.placeholder = `Auto (${auto.down})`;
-    summary.textContent = describe();
+    summary.textContent = describeAdvanced(value, unit, defaultNpa);
   }
 
   for (const edge of EDGES) {
