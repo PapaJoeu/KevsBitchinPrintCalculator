@@ -16,6 +16,7 @@ import { renderScores } from './ui/scoresView.js';
 import { createSheetView } from './ui/sheetView.js';
 import { createTabs } from './ui/tabs.js';
 import { createCopyLink } from './ui/copyLink.js';
+import { createPreferencesView } from './ui/preferencesView.js';
 import { formatShort } from './ui/format.js';
 
 const $ = (id) => document.getElementById(id);
@@ -68,6 +69,7 @@ const sheetView = createSheetView($('canvas'));
 const NO_SCORES = { offsets: [], positions: [], segments: [] };
 const tabs = createTabs($('tabs'), TABS, { onSelect: showTab });
 $('shareBar').append(createCopyLink(() => urlFor(state.unit, state.job)));
+const preferencesView = createPreferencesView($('preferences'), { onChange: setPrefs });
 
 const toInchesIn = (unit) => (value) => (unit === 'mm' ? mmToInches(value) : value);
 
@@ -220,6 +222,18 @@ function showTab(id) {
   if (id === 'history') renderHistoryPanel();
 }
 
+/**
+ * Update a preference. Saved at once. Turning resume on saves the current job so
+ * closing the app right away still resumes here; turning it off forgets it at once.
+ */
+function setPrefs(patch) {
+  state.prefs = { ...state.prefs, ...patch };
+  storage.savePrefs(state.prefs);
+  if (state.prefs.resume) storage.saveLast(state.unit, state.job);
+  else storage.clearLast();
+  preferencesView.setValue(state.prefs);
+}
+
 /** The History view arrives with its own task; until then the panel stays empty. */
 function renderHistoryPanel() {}
 
@@ -236,6 +250,7 @@ else if (resumed) loadJob(resumed.unit, resumed.job);
 else loadJob(state.prefs.unit, DEFAULTS[state.prefs.unit]);
 showTab('calculator');
 tabs.setBadge('history', state.history.length);
+preferencesView.setValue(state.prefs);
 
 // Offline shell. When a new version takes over an open page, reload once to run it.
 if ('serviceWorker' in navigator) {

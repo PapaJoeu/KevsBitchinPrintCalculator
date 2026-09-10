@@ -23,6 +23,7 @@ const SHELL = [
   './js/ui/foldInputs.js',
   './js/ui/format.js',
   './js/ui/presets.js',
+  './js/ui/preferencesView.js',
   './js/ui/scoresView.js',
   './js/ui/sequenceView.js',
   './js/ui/sheetView.js',

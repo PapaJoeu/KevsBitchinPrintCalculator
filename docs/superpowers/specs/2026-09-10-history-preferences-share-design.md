@@ -173,7 +173,8 @@ immediately with no button:
 - **Default unit** — `in | mm`. Affects only which unit a fresh job opens in.
 - **Resume last job on open** — `On | Off`. Note beneath: "Off always opens
   with a fresh default job." Turning it off deletes `last` immediately;
-  turning it on saves from the next change (nothing retroactive).
+  turning it on saves the current job immediately, so closing the app right
+  away still resumes here.
 
 ## Failure modes
 
