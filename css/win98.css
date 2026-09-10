@@ -26,7 +26,7 @@ html { background: var(--desktop); }
 body {
   margin: 0;
   font-family: var(--font);
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.3;
   color: var(--text);
   background: var(--desktop);
@@ -58,7 +58,7 @@ body {
 .title-bar h1 {
   flex: 1;
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -115,6 +115,14 @@ button:disabled {
   cursor: default;
 }
 
+/* A disabled field keeps the sunken well but greys its text. -webkit-text-fill-color
+   is the only thing iOS honours for a disabled input's colour. */
+input[type="text"]:disabled {
+  color: var(--disabled);
+  background: var(--face);
+  -webkit-text-fill-color: var(--disabled);
+}
+
 /* Inputs ------------------------------------------------------------------ */
 
 input[type="text"] {
@@ -150,9 +158,11 @@ fieldset.group {
   box-shadow: inset 1px 1px var(--highlight), 1px 1px var(--highlight);
 }
 
+/* Every section legend in the app reads the same: 15px bold on the face colour. */
 fieldset.group > legend {
   padding: 0 4px;
   background: var(--face);
+  font-weight: bold;
 }
 
 /* Panels ------------------------------------------------------------------ */

@@ -6,57 +6,63 @@
   overflow-x: hidden;
 }
 
-.toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 2px;
-}
-
 main {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   padding: 2px;
   min-width: 0;
 }
 
 .column {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   align-content: start;
   min-width: 0;
 }
 
-/* Chips */
-.chips { display: flex; flex-wrap: wrap; gap: 4px; }
-.chips button { flex: 1 0 auto; padding-left: 10px; padding-right: 10px; white-space: nowrap; }
+/* Chips: always an equal-width grid, so no row ends in an orphan width.
+   --cols is set per row by the module that renders it. */
+.chips { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); gap: 4px; }
+.chips button { padding-left: 8px; padding-right: 8px; min-width: 0; }
+/* The pressed bevel shifts content 1px; with a grid cell the horizontal shift
+   would reflow the text, so only the vertical shift is kept. */
+.chips button[aria-pressed="true"] { padding: 7px 8px 5px; }
 .chips button.inactive { color: var(--disabled); text-shadow: 1px 1px var(--highlight); }
 
-/* Custom size fields */
+/* One label rule for every field in the app: the label sits above its control. */
+.field { display: grid; gap: 3px; font-size: 13px; }
+.field.disabled { color: var(--disabled); }
+
+/* An input section stacks its chip row, fields, hints and Rotate at one rhythm.
+   Scoring and Alignment breathe a little wider. */
+fieldset.group.section { display: grid; gap: 6px; }
+fieldset.group.section.wide { display: grid; gap: 8px; }
+.row > button { min-width: 64px; }
+
+/* Two size fields side by side. The parent grid's gap handles the spacing. */
 .custom {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   gap: 6px;
   align-items: end;
-  margin-top: 8px;
 }
-.custom label { display: grid; gap: 2px; font-size: 12px; }
 .custom .times { padding-bottom: 12px; }
 
-.hint { margin: 6px 0 0; font-size: 12px; color: var(--navy); }
+.hint { margin: 0; font-size: 13px; color: var(--navy); }
 
-.row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
-.row > label { flex: 1; display: grid; gap: 2px; font-size: 12px; }
+/* A field with a button beside it (custom score). */
+.row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: end; }
 
 /* Summary */
 .summary { display: grid; gap: 6px; }
 .summary .nup { font-size: 28px; font-weight: bold; line-height: 1.1; }
 .summary .detail { font-size: 13px; margin: 0; }
-.summary .warning { background: var(--highlight); }
+.summary .detail.lead { font-size: 15px; }
+.summary .warning { padding: 8px; background: var(--highlight); }
 .summary .warning p { margin: 0 0 4px; }
-.summary .hint-box { display: grid; gap: 6px; background: var(--highlight); }
+.summary .hint-box { display: grid; gap: 6px; padding: 8px; background: var(--highlight); }
 .summary .hint-box p { margin: 0; }
-.summary .actions { display: flex; gap: 6px; }
+.summary .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
 
 /* Visualizer: capped so it never pushes the sequence off screen */
 .sheetView canvas {
@@ -64,7 +70,7 @@ main {
   width: 100%;
   height: min(40vh, 360px);
 }
-.legend { display: flex; gap: 16px; margin-top: 6px; font-size: 12px; }
+.legend { display: flex; gap: 16px; margin-top: 6px; font-size: 13px; }
 .legend .swatch {
   display: inline-block;
   width: 28px;
@@ -76,6 +82,8 @@ main {
 
 /* Sequence */
 .seq-header { margin: 0 0 6px; font-size: 13px; }
+.seq-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin-bottom: 6px; }
+.seq-progress { margin: 0 0 6px; font-size: 13px; }
 ol.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 li.step {
   display: grid;
@@ -87,8 +95,34 @@ li.step {
   padding: 4px 6px;
   background: var(--highlight);
   border: 1px solid var(--shadow);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
 }
-li.step .step-n { grid-area: n; text-align: center; color: var(--shadow); }
+
+/* A cut the operator has keyed in. The number becomes a tick, so a struck row is
+   still readable at arm's length on the machine. */
+li.step.done {
+  background: var(--face);
+  color: var(--disabled);
+  text-decoration: line-through;
+}
+
+/* The tick is the one mark that says "this cut is keyed in", so it stays full
+   contrast: grey on the grey face is unreadable at arm's length on a press. */
+li.step.done .step-n {
+  color: var(--text);
+  font-weight: bold;
+  text-decoration: none;
+}
+
+/* Large gauge: notes are hidden by the renderer, so the row is one tall line. */
+ol.steps.large li.step {
+  grid-template-areas: "n pos axis";
+  min-height: var(--tap);
+}
+ol.steps.large li.step .step-pos { font-size: 32px; }
+li.step .step-n { grid-area: n; text-align: center; }
 li.step .step-pos {
   grid-area: pos;
   font-size: 26px;
@@ -96,10 +130,10 @@ li.step .step-pos {
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
-li.step .step-note { grid-area: note; font-size: 12px; color: var(--shadow); }
+li.step .step-note { grid-area: note; font-size: 13px; }
 li.step .step-axis {
   grid-area: axis;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: bold;
   padding: 2px 6px;
   border: 1px solid var(--shadow);
@@ -130,25 +164,26 @@ table.scores th { background: var(--face); font-weight: normal; }
   .sheetView canvas { height: 360px; }
 }
 
-/* Advanced section: a disclosure header that doubles as a live summary */
+/* Advanced: the disclosure header is two lines — the legend, then the live summary,
+   so an override can never hide behind a closed panel. */
 .advanced > legend { padding: 0; }
 .advanced .disclosure {
+  display: grid;
+  gap: 2px;
   min-width: 0;
-  padding: 6px 8px;
-  font-size: 13px;
+  padding: 4px;
   text-align: left;
   background: var(--face);
   border: 0;
   box-shadow: none;
 }
-.advanced .disclosure:active { padding: 6px 8px; }
+.advanced .disclosure:active { padding: 4px; }
+.advanced .disclosure-title { font-size: 15px; font-weight: bold; }
 .advanced .caret { display: inline-block; width: 1em; }
-.advanced-summary { color: var(--navy); }
-.advanced-body { display: grid; gap: 4px; padding-top: 4px; }
-.section-label { margin: 8px 0 2px; font-size: 12px; font-weight: bold; }
+.advanced-summary { padding-left: 1em; font-size: 13px; color: var(--navy); }
+.advanced-body { display: grid; gap: 10px; padding-top: 6px; }
+.advanced-body .group { display: grid; gap: 8px; }
 .npa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.npa-grid label { display: grid; gap: 2px; font-size: 12px; }
-.row-label { min-width: 5.5em; font-size: 12px; }
 
 /* Tabs: the Win98 tabbed dialog. The selected tab stands taller and joins its panel. */
 .tabs { display: flex; align-items: flex-end; gap: 2px; padding: 6px 4px 0; }
@@ -163,6 +198,7 @@ table.scores th { background: var(--face); font-weight: normal; }
 }
 .tabs button[role="tab"]:active { padding: 4px 10px 6px; }
 .tabs button[aria-selected="true"] {
+  font-weight: bold;
   min-height: 40px;
   margin-bottom: 0;
   padding-bottom: 8px;
@@ -176,28 +212,38 @@ section[role="tabpanel"] { border-top: 2px solid var(--highlight); }
   min-width: 1.4em;
   margin-left: 6px;
   padding: 0 4px;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--highlight);
   background: var(--navy);
 }
 .view { padding: 8px 2px 2px; }
 
-/* Share */
-.share { margin-top: 2px; }
-.copy-link-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.copy-link-wrap input { flex: 1 1 12em; min-width: 0; }
+/* Share: the last thing in the right column, full width. */
+.copy-link-wrap { display: grid; gap: 6px; }
+.copy-link-wrap input { min-width: 0; }
+/* Inside a history row the button sits in a 3-col action grid, not full width. */
+.history-actions .copy-link-wrap { display: contents; }
 
-/* History rows: the body is one flat tap target; actions sit to the right */
+/* History rows: the body is one flat tap target with its actions in a row beneath. */
 .history { display: grid; gap: 6px; }
 .history-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
   gap: 6px;
   padding: 6px;
   background: var(--highlight);
   border: 1px solid var(--shadow);
 }
+
+/* Undo bar: a deletion is reversible for a few seconds, so a mis-tap costs nothing. */
+.undo-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+  background: var(--highlight);
+}
+.undo-bar button { min-width: 64px; }
 .history-open, .history-open:active {
   display: grid;
   gap: 2px;
@@ -209,24 +255,24 @@ section[role="tabpanel"] { border-top: 2px solid var(--highlight); }
   box-shadow: none;
 }
 .history-open .nup { font-size: 22px; font-weight: bold; line-height: 1.1; }
-.history-open .line { font-size: 13px; }
-.history-open .extra { font-size: 12px; color: var(--navy); }
-.history-open .when { font-size: 12px; color: var(--shadow); }
+.history-open .line { font-size: 15px; }
+.history-open .extra { font-size: 13px; color: var(--navy); }
+.history-open .when { font-size: 13px; }
 .history-open .unit-badge {
   margin-left: 6px;
   padding: 0 4px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: normal;
   vertical-align: middle;
   border: 1px solid var(--shadow);
 }
-.history-actions { display: grid; gap: 4px; align-content: start; }
-.empty { margin: 4px 0; font-size: 13px; }
+.history-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.empty { margin: 4px 0; font-size: 15px; }
 
-/* Preferences */
-.pref { display: grid; gap: 4px; margin-bottom: 12px; }
-.pref-label { font-size: 13px; font-weight: bold; }
-.pref .note { margin: 0; font-size: 12px; color: var(--shadow); }
+/* Preferences: one group box per setting. */
+.prefs { display: grid; gap: 10px; }
+.pref { display: grid; gap: 6px; }
+.pref .note { margin: 0; font-size: 13px; }
 
 @media (min-width: 900px) {
   .view { max-width: 640px; }
