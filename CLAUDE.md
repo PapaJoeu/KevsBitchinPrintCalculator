@@ -64,7 +64,8 @@ keys each one into the machine separately.
 - **NPA, alignment, and offsets are sheet-relative and do not rotate with the sheet**, like the fold axis.
 - The address bar mirrors the job on every render (`replaceState`, never
   `pushState`): a bookmark is a saved job. History records a job only after it
-  sits unchanged for 15 s and fits; `last` (resume) is written on every change.
+  sits unchanged for 15 s and fits; `last` (resume) is written on every change
+  while resume is on.
 
 ## Verifying UI
 

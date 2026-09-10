@@ -44,6 +44,11 @@ test('round-trips millimetres, counts, two-edge alignment, folds, and custom sco
   assert.deepEqual(roundTrip('in', folded), { unit: 'in', job: folded });
 });
 
+test('an axis choice survives the round trip even with fold style off', () => {
+  const axisOnly = job('in', { fold: { style: 'none', axis: 'W', allowance: 0.0625, custom: [1.75] } });
+  assert.deepEqual(roundTrip('in', axisOnly), { unit: 'in', job: axisOnly });
+});
+
 test('omitted keys fill in from the defaults of the named unit', () => {
   const decoded = decodeJob('v=1&u=mm&s=320x450&d=90x55&g=3x3', DEFAULTS);
   assert.deepEqual(decoded, { unit: 'mm', job: job('mm') });

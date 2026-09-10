@@ -8,7 +8,7 @@
 
 const UNITS = ['in', 'mm'];
 const EDGES = ['top', 'bottom', 'left', 'right'];
-const FOLD_STYLES = ['bifold', 'trifold', 'zfold'];
+const FOLD_STYLES = ['none', 'bifold', 'trifold', 'zfold'];
 const AXES = ['L', 'W'];
 
 // A plain non-negative decimal as typed: "3.5", ".125", "0". No sign, no exponent, no hex.
@@ -42,7 +42,8 @@ export function encodeJob(unit, job, defaults) {
   if (job.count.across !== undefined || job.count.down !== undefined) parts.push(`c=${job.count.across ?? ''}x${job.count.down ?? ''}`);
   const aligned = EDGES.filter((edge) => edge in job.align);
   if (aligned.length) parts.push(`a=${aligned.map((edge) => `${edge}=${job.align[edge]}`).join(',')}`);
-  if (job.fold.style !== 'none') parts.push(`f=${job.fold.style}|${job.fold.axis}|${job.fold.allowance}`);
+  if (job.fold.style !== 'none' || job.fold.axis !== defaults.fold.axis || job.fold.allowance !== defaults.fold.allowance)
+    parts.push(`f=${job.fold.style}|${job.fold.axis}|${job.fold.allowance}`);
   if (job.fold.custom.length) parts.push(`x=${job.fold.custom.join(',')}`);
   return parts.join('&');
 }
