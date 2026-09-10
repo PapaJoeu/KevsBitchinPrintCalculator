@@ -58,6 +58,18 @@ export function createSheetView(canvas) {
     ctx.lineWidth = 1;
     ctx.strokeRect(ox + 0.5, oy + 0.5, sw - 1, sl - 1);
 
+    // The printable boundary, when there is a non-printable area: a dotted inset the
+    // block should sit inside. In a violation the block visibly crosses it.
+    if (Object.values(layout.npa).some((v) => v > 0)) {
+      ctx.save();
+      ctx.strokeStyle = PALETTE.shadow;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 3]);
+      ctx.strokeRect(X(layout.npa.left) + 0.5, Y(layout.npa.top) + 0.5,
+                     layout.printable.width * scale - 1, layout.printable.length * scale - 1);
+      ctx.restore();
+    }
+
     // Head marker: the edge the first cut squares.
     ctx.fillStyle = PALETTE.ink;
     ctx.beginPath();
