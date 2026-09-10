@@ -29,16 +29,16 @@
     <div id="tabs"></div>
 
     <section id="panel-calculator" role="tabpanel" aria-labelledby="tab-calculator">
-      <div class="toolbar">
-        <span>Units</span>
-        <div class="chips" id="unitChips" role="group" aria-label="Units">
-          <button type="button" data-unit="in" aria-pressed="true">in</button>
-          <button type="button" data-unit="mm" aria-pressed="false">mm</button>
-        </div>
-      </div>
-
       <main>
         <div class="column">
+          <fieldset class="group">
+            <legend>Units</legend>
+            <div class="chips" id="unitChips" role="group" aria-label="Units" style="--cols: 2">
+              <button type="button" data-unit="in" aria-pressed="true">in</button>
+              <button type="button" data-unit="mm" aria-pressed="false">mm</button>
+            </div>
+          </fieldset>
+
           <div id="sheetInputs"></div>
           <div id="docInputs"></div>
           <div id="gutterInputs"></div>
@@ -50,7 +50,6 @@
           <fieldset class="group">
             <legend>Layout</legend>
             <div id="summary" class="summary"></div>
-            <div id="shareBar" class="actions share"></div>
           </fieldset>
 
           <fieldset class="group sheetView">
@@ -71,6 +70,8 @@
             <legend>Scores</legend>
             <div id="scores"></div>
           </fieldset>
+
+          <div id="shareBar"></div>
         </div>
       </main>
     </section>
@@ -83,10 +84,7 @@
     </section>
 
     <section id="panel-preferences" class="view" role="tabpanel" aria-labelledby="tab-preferences" hidden>
-      <fieldset class="group">
-        <legend>Preferences</legend>
-        <div id="preferences"></div>
-      </fieldset>
+      <div id="preferences" class="prefs"></div>
     </section>
   </div>
 
