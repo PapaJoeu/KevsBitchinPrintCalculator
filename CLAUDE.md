@@ -54,11 +54,27 @@ keys each one into the machine separately.
   physical sheet, so the tool offers a hint and they choose.
 - **`[hidden] { display: none !important }`** (css/win98.css) is load-bearing:
   layout classes setting `display` otherwise beat the attribute.
-- `applyRotation` deliberately leaves `state.fold.axis` alone — the axis is
+- `applyRotation` deliberately leaves `state.job.fold.axis` alone — the axis is
   sheet-relative.
 - **NPA, alignment, and offsets are sheet-relative and do not rotate with the sheet**, like the fold axis.
 
+## Verifying UI
+
+Use `.claude/skills/screenshot/shoot.py` (see its SKILL.md), never
+`chrome --headless --window-size` — that lays out at ~500px and crops, so
+mobile bugs are invented and real ones hidden. Prefer `--print` (read live DOM
+state) over eyeballing pixels. All `--eval`s run before any `--print`; to
+observe state between two actions, use two invocations.
+
 ## Gotchas
+
+- Two PostToolUse hooks (`.claude/settings.json`) print to stderr: a warning
+  when a cached file changes without an `sw.js` VERSION bump, and the core
+  fixture tests after any `js/core/` edit. They never block; read their output.
+- Renaming a file or CSS class: `tests/sw.test.js` checks the cache list, but
+  nothing checks CSS selectors. Grep `css/` for the old name — a missed
+  `.visualizer canvas` → `.sheetView canvas` left the canvas unconstrained for
+  ten tasks.
 
 - **Bump `VERSION` in `sw.js` whenever a cached file changes**, or installed
   phones keep serving the old build.
