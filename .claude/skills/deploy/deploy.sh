@@ -8,7 +8,9 @@ step() { printf '\n== %s\n' "$*"; }
 fail() { printf 'DEPLOY STOPPED: %s\n' "$*" >&2; exit 1; }
 
 step "Tests"
-npm test 2>&1 | grep -E '^ℹ (tests|pass|fail)' | tee /dev/stderr | grep -q '^ℹ fail 0$' || fail "tests are not green"
+summary=$(npm test 2>&1 | grep -E '^ℹ (tests|pass|fail)')
+echo "$summary"
+grep -q '^ℹ fail 0$' <<<"$summary" || fail "tests are not green"
 
 step "Working tree"
 [ -z "$(git status --porcelain)" ] || fail "uncommitted changes — commit or stash first"
