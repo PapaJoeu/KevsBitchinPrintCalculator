@@ -8,8 +8,8 @@ import { formatMeasure, formatShort, unitName, stepNote } from './format.js';
 /**
  * @param options  { doneCuts: Set<number>, largeGauge: boolean,
  *                   onToggleDone(n), onToggleGauge(), onReset() }
- *   doneCuts holds step numbers, not indexes: the marks survive a re-render of the
- *   same job and are cleared by the app whenever the job itself changes.
+ *   doneCuts holds step numbers. The app keeps it for as long as the cut list is
+ *   the same list, so the marks survive a re-render and a fold change alike.
  */
 export function renderSequence(container, { layout, steps }, unit, {
   doneCuts = new Set(), largeGauge = false, onToggleDone, onToggleGauge, onReset,
@@ -19,15 +19,30 @@ export function renderSequence(container, { layout, steps }, unit, {
     return;
   }
   const list = el('ol', { class: largeGauge ? 'steps large' : 'steps' });
+  let doneCount = 0;
   for (const step of steps) {
     if (step.turnBefore) list.append(el('li', { class: 'turn' }, 'TURN STACK 90°'));
     const done = doneCuts.has(step.n);
-    const row = el('li', { class: `step step-${step.kind}${done ? ' done' : ''}`, 'aria-pressed': String(done) },
-      el('span', { class: 'step-n' }, done ? '✓' : String(step.n)),
-      el('span', { class: 'step-pos' }, formatMeasure(step.position, unit)),
-      el('span', { class: 'step-axis', title: step.axis === 'L' ? 'Along the sheet length' : 'Along the sheet width' }, step.axis),
-      largeGauge ? '' : el('span', { class: 'step-note' }, stepNote(step)));
-    if (onToggleDone) row.addEventListener('click', () => onToggleDone(step.n));
+    if (done) doneCount += 1;
+    // The row is the button: a full-width target, reachable from a bench keyboard too.
+    const row = el('li', {
+      class: `step step-${step.kind}${done ? ' done' : ''}`,
+      role: 'button', tabindex: '0', 'aria-pressed': String(done),
+      'aria-label': `Cut ${step.n}, ${formatMeasure(step.position, unit)} ${step.axis}${done ? ', done' : ''}`,
+    },
+    el('span', { class: 'step-n', 'aria-hidden': 'true' }, done ? '✓' : String(step.n)),
+    el('span', { class: 'step-pos' }, formatMeasure(step.position, unit)),
+    el('span', { class: 'step-axis', title: step.axis === 'L' ? 'Along the sheet length' : 'Along the sheet width' }, step.axis),
+    largeGauge ? '' : el('span', { class: 'step-note' }, stepNote(step)));
+    if (onToggleDone) {
+      row.addEventListener('click', () => onToggleDone(step.n));
+      row.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onToggleDone(step.n);
+        }
+      });
+    }
     list.append(row);
   }
 
@@ -38,7 +53,6 @@ export function renderSequence(container, { layout, steps }, unit, {
   const reset = el('button', { type: 'button' }, 'Start over');
   if (onReset) reset.addEventListener('click', onReset);
 
-  const doneCount = steps.filter((step) => doneCuts.has(step.n)).length;
   const progress = `Tap a cut when it's done.${doneCount > 0 ? ` ${doneCount} of ${steps.length} done.` : ''}`;
 
   container.replaceChildren(

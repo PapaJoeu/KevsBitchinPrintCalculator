@@ -21,22 +21,21 @@ main {
 }
 
 /* Chips: always an equal-width grid, so no row ends in an orphan width.
-   --cols is set per row by the module that renders it. */
-.chips { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); gap: 4px; }
+   --cols is set per row by the module that renders it. Chips are body text even
+   inside a .field wrapper, which is 13px. The fixed 8px sides also override the
+   pressed bevel's horizontal shift, so a pressed chip never reflows its text. */
+.chips { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); gap: 4px; font-size: 15px; }
 .chips button { padding-left: 8px; padding-right: 8px; min-width: 0; }
-/* The pressed bevel shifts content 1px; with a grid cell the horizontal shift
-   would reflow the text, so only the vertical shift is kept. */
-.chips button[aria-pressed="true"] { padding: 7px 8px 5px; }
 .chips button.inactive { color: var(--disabled); text-shadow: 1px 1px var(--highlight); }
 
 /* One label rule for every field in the app: the label sits above its control. */
 .field { display: grid; gap: 3px; font-size: 13px; }
 .field.disabled { color: var(--disabled); }
 
-/* An input section stacks its chip row, fields, hints and Rotate at one rhythm.
-   Scoring and Alignment breathe a little wider. */
-fieldset.group.section { display: grid; gap: 6px; }
-fieldset.group.section.wide { display: grid; gap: 8px; }
+/* A section stacks its chip row, fields, hints and buttons at one rhythm.
+   Scoring, Alignment and the other Advanced groups breathe a little wider. */
+.section { display: grid; gap: 6px; }
+.section.wide { gap: 8px; }
 .row > button { min-width: 64px; }
 
 /* Two size fields side by side. The parent grid's gap handles the spacing. */
@@ -62,7 +61,8 @@ fieldset.group.section.wide { display: grid; gap: 8px; }
 .summary .warning p { margin: 0 0 4px; }
 .summary .hint-box { display: grid; gap: 6px; padding: 8px; background: var(--highlight); }
 .summary .hint-box p { margin: 0; }
-.summary .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+/* One equal column per fix button: a lone button fills the row, two share it. */
+.summary .actions { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; }
 
 /* Visualizer: capped so it never pushes the sequence off screen */
 .sheetView canvas {
@@ -105,16 +105,14 @@ li.step {
 li.step.done {
   background: var(--face);
   color: var(--disabled);
-  text-decoration: line-through;
 }
+li.step.done .step-pos,
+li.step.done .step-axis,
+li.step.done .step-note { text-decoration: line-through; }
 
 /* The tick is the one mark that says "this cut is keyed in", so it stays full
    contrast: grey on the grey face is unreadable at arm's length on a press. */
-li.step.done .step-n {
-  color: var(--text);
-  font-weight: bold;
-  text-decoration: none;
-}
+li.step.done .step-n { color: var(--text); font-weight: bold; }
 
 /* Large gauge: notes are hidden by the renderer, so the row is one tall line. */
 ol.steps.large li.step {
@@ -180,9 +178,8 @@ table.scores th { background: var(--face); font-weight: normal; }
 .advanced .disclosure:active { padding: 4px; }
 .advanced .disclosure-title { font-size: 15px; font-weight: bold; }
 .advanced .caret { display: inline-block; width: 1em; }
-.advanced-summary { padding-left: 1em; font-size: 13px; color: var(--navy); }
+.advanced-summary { padding-left: 1em; font-size: 13px; font-weight: normal; color: var(--navy); }
 .advanced-body { display: grid; gap: 10px; padding-top: 6px; }
-.advanced-body .group { display: grid; gap: 8px; }
 .npa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 
 /* Tabs: the Win98 tabbed dialog. The selected tab stands taller and joins its panel. */
@@ -222,8 +219,10 @@ section[role="tabpanel"] { border-top: 2px solid var(--highlight); }
 /* Share: the last thing in the right column, full width. */
 .copy-link-wrap { display: grid; gap: 6px; }
 .copy-link-wrap input { min-width: 0; }
-/* Inside a history row the button sits in a 3-col action grid, not full width. */
+/* Inside a history row the button sits in a 3-col action grid; the fallback
+   field, when the clipboard API is missing, takes a full row beneath. */
 .history-actions .copy-link-wrap { display: contents; }
+.history-actions .copy-link-wrap input { grid-column: 1 / -1; }
 
 /* History rows: the body is one flat tap target with its actions in a row beneath. */
 .history { display: grid; gap: 6px; }
@@ -271,7 +270,6 @@ section[role="tabpanel"] { border-top: 2px solid var(--highlight); }
 
 /* Preferences: one group box per setting. */
 .prefs { display: grid; gap: 10px; }
-.pref { display: grid; gap: 6px; }
 .pref .note { margin: 0; font-size: 13px; }
 
 @media (min-width: 900px) {

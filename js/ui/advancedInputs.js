@@ -50,7 +50,6 @@ export function createAdvancedInputs(container, { onChange }) {
   for (const axis of Object.values(axes)) {
     axis.hint = el('p', { class: 'hint', hidden: true });
     axis.field = el('label', { class: 'field' }, axis.label, axis.input);
-    axis.row = el('div', {}, axis.field);
   }
 
   const npaHint = el('p', { class: 'hint', hidden: true });
@@ -59,13 +58,13 @@ export function createAdvancedInputs(container, { onChange }) {
   const caret = el('span', { class: 'caret' }, '▸');
   const disclosure = el('button', { type: 'button', class: 'disclosure', 'aria-expanded': 'false' },
     el('span', { class: 'disclosure-title' }, caret, ' Advanced'), summary);
-  const group = (legend, ...children) => el('fieldset', { class: 'group' }, el('legend', {}, legend), ...children);
+  const group = (legend, ...children) => el('fieldset', { class: 'group section wide' }, el('legend', {}, legend), ...children);
   const body = el('div', { class: 'advanced-body', hidden: true },
     group('Non-printable area', npaGrid, npaHint),
     group('Count', countRow, countHint),
     group('Alignment',
-      el('div', { class: 'field' }, axes.vertical.name, axes.vertical.chips), axes.vertical.row, axes.vertical.hint,
-      el('div', { class: 'field' }, axes.horizontal.name, axes.horizontal.chips), axes.horizontal.row, axes.horizontal.hint));
+      el('div', { class: 'field' }, axes.vertical.name, axes.vertical.chips), axes.vertical.field, axes.vertical.hint,
+      el('div', { class: 'field' }, axes.horizontal.name, axes.horizontal.chips), axes.horizontal.field, axes.horizontal.hint));
   disclosure.addEventListener('click', () => {
     const open = body.hidden;
     body.hidden = !open;

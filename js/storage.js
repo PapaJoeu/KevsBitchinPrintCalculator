@@ -61,8 +61,11 @@ export function createStorage(store) {
       const doc = read(KEYS.prefs);
       if (!doc || !UNITS.includes(doc.unit) || typeof doc.resume !== 'boolean') return null;
       // largeGauge arrived after unit and resume: prefs written by an older build are
-      // still perfectly good, they simply do not mention it. Absent reads as off.
-      return { unit: doc.unit, resume: doc.resume, largeGauge: doc.largeGauge === true };
+      // still perfectly good, they simply do not mention it. Only what is present and
+      // well-formed comes back; the app supplies the default for anything absent.
+      const prefs = { unit: doc.unit, resume: doc.resume };
+      if (typeof doc.largeGauge === 'boolean') prefs.largeGauge = doc.largeGauge;
+      return prefs;
     },
     savePrefs: (prefs) => write(KEYS.prefs, { unit: prefs.unit, resume: prefs.resume, largeGauge: prefs.largeGauge === true }),
     loadLast() {

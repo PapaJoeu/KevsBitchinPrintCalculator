@@ -9,9 +9,10 @@ const CLEAR_ARM_MS = 4000;
 /**
  * @param options  { summarize(entry) → { nup, line, extra }, copyLink(entry) → element,
  *                   onLoad(entry), onDelete(index), onClear(), onUndo() }
- * @returns { render(entries, { unit, available, now, pendingUndo }) }
- *   pendingUndo is { entry, index } or null — the app owns the timer, the view only
- *   draws the bar, so a re-render can never resurrect an expired offer.
+ * @returns { render(entries, { unit, available, now, pendingUndo }), dismissUndo() }
+ *   pendingUndo is { entry, label } or null — the app owns the timer, the view only
+ *   draws the bar, so a re-render can never resurrect an expired offer. dismissUndo
+ *   removes the bar in place, leaving the rows and an armed Clear untouched.
  */
 export function createHistoryView(container, { summarize, copyLink, onLoad, onDelete, onClear, onUndo }) {
   let armed = null;
@@ -27,7 +28,7 @@ export function createHistoryView(container, { summarize, copyLink, onLoad, onDe
 
     const openButton = el('button', { type: 'button' }, 'Open');
     openButton.addEventListener('click', () => onLoad(entry));
-    const remove = el('button', { type: 'button', class: 'delete', 'aria-label': `Delete this job (${summarize(entry).nup})` }, 'Delete');
+    const remove = el('button', { type: 'button', class: 'delete', 'aria-label': `Delete this job (${nup})` }, 'Delete');
     remove.addEventListener('click', () => onDelete(index));
     return el('div', { class: 'history-row' }, open,
       el('div', { class: 'history-actions' }, openButton, copyLink(entry), remove));
@@ -37,8 +38,7 @@ export function createHistoryView(container, { summarize, copyLink, onLoad, onDe
   function undoBar(pending) {
     const undo = el('button', { type: 'button' }, 'Undo');
     undo.addEventListener('click', onUndo);
-    return el('div', { class: 'panel undo-bar' },
-      el('span', {}, `Deleted ${summarize(pending.entry).nup} job.`), undo);
+    return el('div', { class: 'panel undo-bar' }, el('span', {}, `Deleted ${pending.label} job.`), undo);
   }
 
   // Clearing is two taps within a few seconds, not a dialog — it's a phone.
@@ -76,6 +76,9 @@ export function createHistoryView(container, { summarize, copyLink, onLoad, onDe
       }
       if (!available) children.push(el('p', { class: 'hint' }, "History can't be saved on this device."));
       container.replaceChildren(...children);
+    },
+    dismissUndo() {
+      container.querySelector('.undo-bar')?.remove();
     },
   };
 }

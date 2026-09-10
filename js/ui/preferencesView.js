@@ -1,4 +1,4 @@
-// preferencesView.js — two settings, each a chip row, saved the moment they change.
+// preferencesView.js — the settings, each a chip row, saved the moment they change.
 // The rows never read storage; the app hands them the current prefs with setValue.
 import { el } from './dom.js';
 
@@ -15,6 +15,12 @@ const ROWS = [
     options: [[true, 'On'], [false, 'Off']],
     note: 'Off always opens with a fresh default job.',
   },
+  {
+    key: 'largeGauge',
+    label: 'Large gauge',
+    options: [[true, 'On'], [false, 'Off']],
+    note: 'Bigger gauge positions in the program sequence, without the step notes. The button above the sequence toggles the same setting.',
+  },
 ];
 
 /** @param options  { onChange(patch) }  patch is { unit } or { resume } */
@@ -28,7 +34,7 @@ export function createPreferencesView(container, { onChange }) {
       row.append(button);
     }
     rows.set(key, row);
-    return el('fieldset', { class: 'group pref' }, el('legend', {}, label), row, el('p', { class: 'note' }, note));
+    return el('fieldset', { class: 'group section pref' }, el('legend', {}, label), row, el('p', { class: 'note' }, note));
   });
   container.replaceChildren(...blocks);
   return {

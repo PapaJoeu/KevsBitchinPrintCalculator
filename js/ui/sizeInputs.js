@@ -27,13 +27,14 @@ export function createSizeInputs(container, {
 
   const firstInput = el('input', { type: 'text', inputmode: 'decimal', autocomplete: 'off', 'aria-label': `${label} ${labels[0].toLowerCase()}` });
   const secondInput = el('input', { type: 'text', inputmode: 'decimal', autocomplete: 'off', 'aria-label': `${label} ${labels[1].toLowerCase()}` });
-  const firstLabel = el('label', { class: 'field' }, labels[0], firstInput);
-  const secondLabel = el('label', { class: 'field' }, labels[1], secondInput);
-  const fields = el('div', { class: 'custom' }, firstLabel, el('span', { class: 'times' }, '×'), secondLabel);
+  const inputs = [firstInput, secondInput];
+  const fieldLabels = [el('label', { class: 'field' }, labels[0], firstInput), el('label', { class: 'field' }, labels[1], secondInput)];
+  const fields = el('div', { class: 'custom' }, fieldLabels[0], el('span', { class: 'times' }, '×'), fieldLabels[1]);
 
   // One hint per field, directly under the fields and named, so the worker never has
-  // to guess which of the two boxes the message is about.
-  const hints = [el('p', { class: 'hint', hidden: true }), el('p', { class: 'hint', hidden: true })];
+  // to guess which of the two boxes the message is about. The text never changes.
+  const advice = allowZero ? 'enter a number like 0.125 or 1/8, or 0 for no gutter.' : 'enter a number like 3.5 or 3 1/2.';
+  const hints = labels.map((text) => el('p', { class: 'hint', hidden: true }, `${text}: ${advice}`));
   const rotate = el('button', { type: 'button', dataset: { action: 'rotate' }, 'aria-label': `Rotate ${label.toLowerCase()}` }, `↻ Rotate ${label.toLowerCase()}`);
   rotate.addEventListener('click', () => api.rotate());
 
@@ -47,22 +48,34 @@ export function createSizeInputs(container, {
     for (const b of chips.children) b.setAttribute('aria-pressed', String(b === button));
   }
 
+  /** Press the chip matching the value; a value matching none presses nothing. */
+  function pressMatching() {
+    press(chips.children[presets.findIndex((p) => same(p, value))] ?? null);
+  }
+
   function fill() {
     firstInput.value = String(value[first]);
     secondInput.value = String(value[second]);
   }
 
-  /** A zero value has nothing to type and nothing to turn: grey the controls. */
+  /**
+   * A zero value has nothing to type and nothing to turn: grey the controls. Only
+   * ever applied after a chip, a rotate, or a load — never while the worker is
+   * typing, where a leading "0" would disable the field under their finger.
+   */
   function applyDisabled() {
     if (!zeroDisables) return;
     const off = value[first] === 0 && value[second] === 0;
-    for (const input of [firstInput, secondInput]) input.disabled = off;
+    for (const input of inputs) input.disabled = off;
     rotate.disabled = off;
-    firstLabel.classList.toggle('disabled', off);
-    secondLabel.classList.toggle('disabled', off);
+    for (const l of fieldLabels) l.classList.toggle('disabled', off);
   }
 
-  function hideHints() {
+  /** Show the value: matching chip pressed, fields filled, no stale hints. */
+  function reflect() {
+    pressMatching();
+    fill();
+    applyDisabled();
     for (const hint of hints) hint.hidden = true;
   }
 
@@ -71,57 +84,37 @@ export function createSizeInputs(container, {
       const button = el('button', { type: 'button', 'aria-pressed': 'false' }, chipText(preset));
       button.addEventListener('click', () => {
         value = { [first]: preset[first], [second]: preset[second] };
-        press(button);
-        fill();
-        applyDisabled();
-        hideHints();
+        reflect();
         onChange(value);
       });
       return button;
     }));
   }
 
-  /** Press the chip matching the value; a value matching none presses nothing. */
-  function reflect() {
-    const index = presets.findIndex((p) => same(p, value));
-    press(index >= 0 ? chips.children[index] : null);
-    fill();
-    applyDisabled();
-  }
-
   function readFields() {
-    const parsed = [parseMeasurement(firstInput.value), parseMeasurement(secondInput.value)];
+    const parsed = inputs.map((input) => parseMeasurement(input.value));
     const valid = (n) => n !== null && (allowZero ? n >= 0 : n > 0);
     let bad = false;
     parsed.forEach((n, i) => {
-      const ok = valid(n);
-      hints[i].textContent = `${labels[i]}: ${allowZero
-        ? 'enter a number like 0.125 or 1/8, or 0 for no gutter.'
-        : 'enter a number like 3.5 or 3 1/2.'}`;
-      hints[i].hidden = ok;
-      if (!ok) bad = true;
+      hints[i].hidden = valid(n);
+      if (!valid(n)) bad = true;
     });
     if (bad) return;
     value = { [first]: parsed[0], [second]: parsed[1] };
-    const index = presets.findIndex((p) => same(p, value));
-    press(index >= 0 ? chips.children[index] : null);
-    applyDisabled();
+    pressMatching();
     onChange(value);
   }
-  firstInput.addEventListener('input', readFields);
-  secondInput.addEventListener('input', readFields);
+  for (const input of inputs) input.addEventListener('input', readFields);
 
   const api = {
     setPresets(nextPresets, nextValue) {
       presets = nextPresets;
       value = nextValue;
       renderChips();
-      hideHints();
       reflect();
     },
     setValue(nextValue) {
       value = nextValue;
-      hideHints();
       reflect();
     },
     /** Swap the two dimensions. The one change the section makes to its own value. */

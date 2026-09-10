@@ -4,7 +4,7 @@ import { computeSequence } from './core/sequence.js';
 import { computeScores } from './core/scores.js';
 import { mmToInches, inchesToMm } from './core/measure.js';
 import { encodeJob, decodeJob } from './core/share.js';
-import { recordJob } from './core/history.js';
+import { recordJob, MAX_HISTORY } from './core/history.js';
 import { createStorage, browserStorage } from './storage.js';
 import { PRESETS, DEFAULTS } from './ui/presets.js';
 import { createSizeInputs } from './ui/sizeInputs.js';
@@ -47,9 +47,10 @@ const state = {
   job: structuredClone(DEFAULTS.in),
   hintDismissed: false,
   tab: 'calculator',
-  // Cuts the operator has keyed in, by step number. Cleared whenever the job changes
-  // (update, loadJob) and never by render, so re-rendering the same job keeps them.
-  doneCuts: new Set(),
+  // Cuts the operator has keyed in, by step number, valid for one cut list. render()
+  // keys the set to a signature of the steps: a change that leaves the program the
+  // same (a fold, a unit-preference tap) keeps the marks, any other change drops them.
+  done: { key: '', cuts: new Set() },
   // A just-deleted history row, offered back for UNDO_MS.
   pendingUndo: null,
   prefs: { ...DEFAULT_PREFS, ...(storage.loadPrefs() ?? {}) },
@@ -63,6 +64,8 @@ const state = {
 };
 let settleTimer = null;
 let undoTimer = null;
+// The last computed result, so a tap on a cut can redraw the sequence alone.
+let lastResult = null;
 
 const sections = {
   sheet: createSizeInputs($('sheetInputs'), { label: 'Sheet', cols: 2, onChange: (sheet) => update({ sheet }) }),
@@ -138,8 +141,14 @@ function summarize({ unit, job }) {
   return { nup: layout.fits ? `${layout.across * layout.down}-up` : 'Does not fit', line, extra };
 }
 
+/** What makes one cut list the same list as the last: every position, axis and kind. */
+const stepsKey = (steps) => steps.map((s) => `${s.position}${s.axis}${s.kind}`).join('|');
+
 function render() {
   const result = compute(state.job, state.unit);
+  lastResult = result;
+  const key = stepsKey(result.steps);
+  if (key !== state.done.key) state.done = { key, cuts: new Set() };
   foldInputs.setDocSize(state.job.doc);
   advancedInputs.setAuto(result.layout.auto);
   renderSummary($('summary'), result, {
@@ -150,16 +159,7 @@ function render() {
     onDismiss: dismissHint,
     onFix: applyFix,
   });
-  renderSequence($('sequence'), result, state.unit, {
-    doneCuts: state.doneCuts,
-    largeGauge: state.prefs.largeGauge,
-    onToggleDone: toggleDone,
-    onToggleGauge: () => setPrefs({ largeGauge: !state.prefs.largeGauge }),
-    onReset: () => {
-      state.doneCuts.clear();
-      render();
-    },
-  });
+  renderSequencePanel();
   renderScores($('scores'), result, state.job.fold, state.unit);
   sheetView.draw(result.layout, result.scores, (inches) => formatShort(inches, state.unit));
   $('legend').hidden = result.scores.segments.length === 0;
@@ -168,21 +168,33 @@ function render() {
   window.history.replaceState(null, '', `#${encodeJob(state.unit, state.job, DEFAULTS[state.unit])}`);
 }
 
+/** The sequence alone, from the last result: a tap on a cut recomputes nothing. */
+function renderSequencePanel() {
+  renderSequence($('sequence'), lastResult, state.unit, {
+    doneCuts: state.done.cuts,
+    largeGauge: state.prefs.largeGauge,
+    onToggleDone: toggleDone,
+    onToggleGauge: () => setPrefs({ largeGauge: !state.prefs.largeGauge }),
+    onReset: () => {
+      state.done.cuts.clear();
+      renderSequencePanel();
+    },
+  });
+}
+
 /** Apply a validated change to the job. Any change re-arms the orientation hint. */
 function update(patch) {
   Object.assign(state.job, patch);
   state.hintDismissed = false;
-  // A changed job is a different program: the ticks no longer refer to these cuts.
-  state.doneCuts.clear();
   render();
   afterChange();
 }
 
 /** Mark a cut done, or undo that. Progress is per session — it is never stored. */
 function toggleDone(n) {
-  if (state.doneCuts.has(n)) state.doneCuts.delete(n);
-  else state.doneCuts.add(n);
-  render();
+  if (state.done.cuts.has(n)) state.done.cuts.delete(n);
+  else state.done.cuts.add(n);
+  renderSequencePanel();
 }
 
 /** After any change: keep the resume job current, and restart the settle timer. */
@@ -200,29 +212,31 @@ function recordSettled() {
 
 /**
  * Delete a row, keeping it recoverable for a few seconds. A second deletion while a
- * bar is up makes the first one permanent — one pending entry, never a stack.
+ * bar is up makes the first one permanent — one pending entry, never a stack. When
+ * the offer lapses only the bar goes: the rows, and an armed Clear, are left alone.
  */
 function deleteEntry(index) {
   const entry = state.history[index];
   if (!entry) return;
-  clearTimeout(undoTimer);
-  state.pendingUndo = { entry, index };
+  clearPendingUndo();
+  state.pendingUndo = { entry, label: summarize(entry).nup };
   undoTimer = setTimeout(() => {
     state.pendingUndo = null;
-    if (state.tab === 'history') renderHistoryPanel();
+    historyView.dismissUndo();
   }, UNDO_MS);
   setHistory(state.history.filter((_, i) => i !== index));
 }
 
-/** Put a deleted row back where it was. A shorter list clamps it to the end. */
+/**
+ * Put a deleted row back. History is newest first, so the entry's own timestamp
+ * says where it belongs — even if a job settled into the list in the meantime —
+ * and the cap holds as it would had the row never left.
+ */
 function undoDelete() {
   const pending = state.pendingUndo;
   if (!pending) return;
-  clearTimeout(undoTimer);
-  state.pendingUndo = null;
-  const entries = [...state.history];
-  entries.splice(Math.min(pending.index, entries.length), 0, pending.entry);
-  setHistory(entries);
+  clearPendingUndo();
+  setHistory([...state.history, pending.entry].sort((a, b) => b.at - a.at).slice(0, MAX_HISTORY));
 }
 
 function clearPendingUndo() {
@@ -288,7 +302,6 @@ function loadJob(unit, job, { remember = true } = {}) {
   state.unit = unit;
   state.job = structuredClone(job);
   state.hintDismissed = false;
-  state.doneCuts.clear();
   for (const kind of ['sheet', 'doc', 'gutter']) sections[kind].setPresets(PRESETS[unit][kind], state.job[kind]);
   foldInputs.setValue(state.job.fold, unit);
   advancedInputs.setValue({ npa: state.job.npa, count: state.job.count, align: state.job.align }, unit, DEFAULTS[unit].npa.top);
@@ -318,19 +331,19 @@ function showTab(id) {
 /**
  * Update a preference. Saved at once. Turning resume on saves the current job so
  * closing the app right away still resumes here; turning it off forgets it at once.
+ * No other preference touches the stored job: with a colleague's link open, the
+ * worker's own unfinished job must stay in `last`.
  */
 function setPrefs(patch) {
   state.prefs = { ...state.prefs, ...patch };
   storage.savePrefs(state.prefs);
-  // Only a change to resume itself touches the stored job. Writing largeGauge must
-  // never clear where the worker was.
-  if ('resume' in patch || 'unit' in patch) {
+  if ('resume' in patch) {
     if (state.prefs.resume) storage.saveLast(state.unit, state.job);
     else storage.clearLast();
   }
   preferencesView.setValue(state.prefs);
-  // Large gauge is a display preference: the sequence has to redraw at the new size.
-  if ('largeGauge' in patch) render();
+  // Large gauge shows in the sequence; redrawing it from the last result is cheap.
+  if (lastResult) renderSequencePanel();
 }
 
 function renderHistoryPanel() {

@@ -56,9 +56,14 @@ test('history entries that are not entry-shaped are filtered out, not passed thr
   assert.deepEqual(s.loadHistory(), [{ unit: 'in', job, at: 5 }]);
 });
 
-test('prefs written before largeGauge existed still load, with the gauge off', () => {
+test('prefs written before largeGauge existed still load, leaving the default to the app', () => {
   const s = createStorage(fakeStore({ seed: { 'printcalc.prefs': JSON.stringify({ v: 1, unit: 'in', resume: true }) } }));
-  assert.deepEqual(s.loadPrefs(), { unit: 'in', resume: true, largeGauge: false });
+  assert.deepEqual(s.loadPrefs(), { unit: 'in', resume: true });
+});
+
+test('a malformed largeGauge is dropped, not coerced', () => {
+  const s = createStorage(fakeStore({ seed: { 'printcalc.prefs': JSON.stringify({ v: 1, unit: 'in', resume: true, largeGauge: 'yes' }) } }));
+  assert.deepEqual(s.loadPrefs(), { unit: 'in', resume: true });
 });
 
 test('prefs with the wrong shape are absent', () => {

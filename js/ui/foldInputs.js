@@ -40,8 +40,8 @@ export function createFoldInputs(container, { onChange }) {
     el('div', { class: 'field' }, 'Fold across', axisChips),
     allowanceRow,
     customRow,
-    customList,
-    hint));
+    hint,
+    customList));
 
   function press(row, attr, key) {
     for (const b of row.children) b.setAttribute('aria-pressed', String(b.dataset[attr] === key));
