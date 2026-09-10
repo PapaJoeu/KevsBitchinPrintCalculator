@@ -22,9 +22,11 @@ import { formatShort, formatFraction, describeAdvanced, describeFold } from './u
 
 const $ = (id) => document.getElementById(id);
 const TABS = [{ id: 'calculator', label: 'Calculator' }, { id: 'history', label: 'History' }, { id: 'preferences', label: 'Preferences' }];
-const DEFAULT_PREFS = { unit: 'in', resume: false };
+const DEFAULT_PREFS = { unit: 'in', resume: false, largeGauge: false };
 // A job goes into history once it has sat unchanged this long (and fits).
 const SETTLE_MS = 15000;
+// How long a deleted history row can be brought back.
+const UNDO_MS = 6000;
 
 const storage = createStorage(browserStorage());
 
@@ -45,7 +47,12 @@ const state = {
   job: structuredClone(DEFAULTS.in),
   hintDismissed: false,
   tab: 'calculator',
-  prefs: storage.loadPrefs() ?? { ...DEFAULT_PREFS },
+  // Cuts the operator has keyed in, by step number. Cleared whenever the job changes
+  // (update, loadJob) and never by render, so re-rendering the same job keeps them.
+  doneCuts: new Set(),
+  // A just-deleted history row, offered back for UNDO_MS.
+  pendingUndo: null,
+  prefs: { ...DEFAULT_PREFS, ...(storage.loadPrefs() ?? {}) },
   // Adopt what sanitize returns, not the raw stored job: an entry that is merely
   // close enough to survive the codec would otherwise keep its stale shape, dodging
   // recordJob's dedupe and breaking anything that later re-encodes it.
@@ -55,13 +62,14 @@ const state = {
   }),
 };
 let settleTimer = null;
+let undoTimer = null;
 
 const sections = {
-  sheet: createSizeInputs($('sheetInputs'), { label: 'Sheet', onChange: (sheet) => update({ sheet }) }),
-  doc: createSizeInputs($('docInputs'), { label: 'Document', onChange: (doc) => update({ doc }) }),
+  sheet: createSizeInputs($('sheetInputs'), { label: 'Sheet', cols: 2, onChange: (sheet) => update({ sheet }) }),
+  doc: createSizeInputs($('docInputs'), { label: 'Document', cols: 3, onChange: (doc) => update({ doc }) }),
   gutter: createSizeInputs($('gutterInputs'), {
     label: 'Gutter', allowZero: true, keys: ['columns', 'rows'], labels: ['Between columns', 'Between rows'],
-    alwaysShowFields: true, onChange: (gutter) => update({ gutter }),
+    cols: 3, zeroDisables: true, onChange: (gutter) => update({ gutter }),
   }),
 };
 const foldInputs = createFoldInputs($('foldInputs'), { onChange: (fold) => update({ fold }) });
@@ -69,7 +77,7 @@ const advancedInputs = createAdvancedInputs($('advancedInputs'), { onChange: (pa
 const sheetView = createSheetView($('canvas'));
 const NO_SCORES = { offsets: [], positions: [], segments: [] };
 const tabs = createTabs($('tabs'), TABS, { onSelect: showTab });
-$('shareBar').append(createCopyLink(() => urlFor(state.unit, state.job)));
+$('shareBar').append(createCopyLink(() => urlFor(state.unit, state.job), 'Copy link to this job'));
 const preferencesView = createPreferencesView($('preferences'), { onChange: setPrefs });
 const historyView = createHistoryView($('history'), {
   summarize,
@@ -78,8 +86,12 @@ const historyView = createHistoryView($('history'), {
     loadJob(entry.unit, entry.job);
     showTab('calculator');
   },
-  onDelete: (index) => setHistory(state.history.filter((_, i) => i !== index)),
-  onClear: () => setHistory([]),
+  onDelete: deleteEntry,
+  onClear: () => {
+    clearPendingUndo();
+    setHistory([]);
+  },
+  onUndo: undoDelete,
 });
 // The advanced summary of a default job, per unit: a row shows it only when it differs.
 const DEFAULT_ADVANCED = Object.fromEntries(['in', 'mm'].map((unit) => [unit, describeAdvanced(DEFAULTS[unit], unit, DEFAULTS[unit].npa.top)]));
@@ -138,7 +150,16 @@ function render() {
     onDismiss: dismissHint,
     onFix: applyFix,
   });
-  renderSequence($('sequence'), result, state.unit);
+  renderSequence($('sequence'), result, state.unit, {
+    doneCuts: state.doneCuts,
+    largeGauge: state.prefs.largeGauge,
+    onToggleDone: toggleDone,
+    onToggleGauge: () => setPrefs({ largeGauge: !state.prefs.largeGauge }),
+    onReset: () => {
+      state.doneCuts.clear();
+      render();
+    },
+  });
   renderScores($('scores'), result, state.job.fold, state.unit);
   sheetView.draw(result.layout, result.scores, (inches) => formatShort(inches, state.unit));
   $('legend').hidden = result.scores.segments.length === 0;
@@ -151,8 +172,17 @@ function render() {
 function update(patch) {
   Object.assign(state.job, patch);
   state.hintDismissed = false;
+  // A changed job is a different program: the ticks no longer refer to these cuts.
+  state.doneCuts.clear();
   render();
   afterChange();
+}
+
+/** Mark a cut done, or undo that. Progress is per session — it is never stored. */
+function toggleDone(n) {
+  if (state.doneCuts.has(n)) state.doneCuts.delete(n);
+  else state.doneCuts.add(n);
+  render();
 }
 
 /** After any change: keep the resume job current, and restart the settle timer. */
@@ -166,6 +196,38 @@ function afterChange() {
 function recordSettled() {
   if (!compute(state.job, state.unit).layout.fits) return;
   setHistory(recordJob(state.history, state.unit, state.job, Date.now()));
+}
+
+/**
+ * Delete a row, keeping it recoverable for a few seconds. A second deletion while a
+ * bar is up makes the first one permanent — one pending entry, never a stack.
+ */
+function deleteEntry(index) {
+  const entry = state.history[index];
+  if (!entry) return;
+  clearTimeout(undoTimer);
+  state.pendingUndo = { entry, index };
+  undoTimer = setTimeout(() => {
+    state.pendingUndo = null;
+    if (state.tab === 'history') renderHistoryPanel();
+  }, UNDO_MS);
+  setHistory(state.history.filter((_, i) => i !== index));
+}
+
+/** Put a deleted row back where it was. A shorter list clamps it to the end. */
+function undoDelete() {
+  const pending = state.pendingUndo;
+  if (!pending) return;
+  clearTimeout(undoTimer);
+  state.pendingUndo = null;
+  const entries = [...state.history];
+  entries.splice(Math.min(pending.index, entries.length), 0, pending.entry);
+  setHistory(entries);
+}
+
+function clearPendingUndo() {
+  clearTimeout(undoTimer);
+  state.pendingUndo = null;
 }
 
 /** Replace the history: in memory, in storage, on the badge, and on screen if it is showing. */
@@ -226,6 +288,7 @@ function loadJob(unit, job, { remember = true } = {}) {
   state.unit = unit;
   state.job = structuredClone(job);
   state.hintDismissed = false;
+  state.doneCuts.clear();
   for (const kind of ['sheet', 'doc', 'gutter']) sections[kind].setPresets(PRESETS[unit][kind], state.job[kind]);
   foldInputs.setValue(state.job.fold, unit);
   advancedInputs.setValue({ npa: state.job.npa, count: state.job.count, align: state.job.align }, unit, DEFAULTS[unit].npa.top);
@@ -259,13 +322,24 @@ function showTab(id) {
 function setPrefs(patch) {
   state.prefs = { ...state.prefs, ...patch };
   storage.savePrefs(state.prefs);
-  if (state.prefs.resume) storage.saveLast(state.unit, state.job);
-  else storage.clearLast();
+  // Only a change to resume itself touches the stored job. Writing largeGauge must
+  // never clear where the worker was.
+  if ('resume' in patch || 'unit' in patch) {
+    if (state.prefs.resume) storage.saveLast(state.unit, state.job);
+    else storage.clearLast();
+  }
   preferencesView.setValue(state.prefs);
+  // Large gauge is a display preference: the sequence has to redraw at the new size.
+  if ('largeGauge' in patch) render();
 }
 
 function renderHistoryPanel() {
-  historyView.render(state.history, { unit: state.unit, available: storage.available, now: Date.now() });
+  historyView.render(state.history, {
+    unit: state.unit,
+    available: storage.available,
+    now: Date.now(),
+    pendingUndo: state.pendingUndo,
+  });
 }
 
 for (const button of $('unitChips').children) {

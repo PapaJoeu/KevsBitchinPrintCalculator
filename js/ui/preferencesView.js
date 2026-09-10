@@ -21,14 +21,14 @@ const ROWS = [
 export function createPreferencesView(container, { onChange }) {
   const rows = new Map();
   const blocks = ROWS.map(({ key, label, options, note }) => {
-    const row = el('div', { class: 'chips' });
+    const row = el('div', { class: 'chips', style: '--cols: 2' });
     for (const [value, text] of options) {
       const button = el('button', { type: 'button', 'aria-pressed': 'false', dataset: { pref: key, value: String(value) } }, text);
       button.addEventListener('click', () => onChange({ [key]: value }));
       row.append(button);
     }
     rows.set(key, row);
-    return el('div', { class: 'pref' }, el('span', { class: 'pref-label' }, label), row, el('p', { class: 'note' }, note));
+    return el('fieldset', { class: 'group pref' }, el('legend', {}, label), row, el('p', { class: 'note' }, note));
   });
   container.replaceChildren(...blocks);
   return {

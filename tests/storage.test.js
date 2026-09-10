@@ -19,9 +19,9 @@ test('round-trips prefs, last, and history with a v:1 envelope', () => {
   const s = createStorage(store);
   assert.equal(s.available, true);
   assert.equal(s.loadPrefs(), null);
-  s.savePrefs({ unit: 'mm', resume: true });
-  assert.deepEqual(s.loadPrefs(), { unit: 'mm', resume: true });
-  assert.deepEqual(JSON.parse(store.map.get('printcalc.prefs')), { v: 1, unit: 'mm', resume: true });
+  s.savePrefs({ unit: 'mm', resume: true, largeGauge: true });
+  assert.deepEqual(s.loadPrefs(), { unit: 'mm', resume: true, largeGauge: true });
+  assert.deepEqual(JSON.parse(store.map.get('printcalc.prefs')), { v: 1, unit: 'mm', resume: true, largeGauge: true });
 
   const job = { sheet: { width: 12, length: 18 } };
   assert.equal(s.loadLast(), null);
@@ -54,6 +54,11 @@ test('history entries that are not entry-shaped are filtered out, not passed thr
     entries: ['nope', 42, null, { garbage: true }, { unit: 'in', job, at: 5 }],
   }) } }));
   assert.deepEqual(s.loadHistory(), [{ unit: 'in', job, at: 5 }]);
+});
+
+test('prefs written before largeGauge existed still load, with the gauge off', () => {
+  const s = createStorage(fakeStore({ seed: { 'printcalc.prefs': JSON.stringify({ v: 1, unit: 'in', resume: true }) } }));
+  assert.deepEqual(s.loadPrefs(), { unit: 'in', resume: true, largeGauge: false });
 });
 
 test('prefs with the wrong shape are absent', () => {

@@ -59,9 +59,12 @@ export function createStorage(store) {
     available: probe(store),
     loadPrefs() {
       const doc = read(KEYS.prefs);
-      return doc && UNITS.includes(doc.unit) && typeof doc.resume === 'boolean' ? { unit: doc.unit, resume: doc.resume } : null;
+      if (!doc || !UNITS.includes(doc.unit) || typeof doc.resume !== 'boolean') return null;
+      // largeGauge arrived after unit and resume: prefs written by an older build are
+      // still perfectly good, they simply do not mention it. Absent reads as off.
+      return { unit: doc.unit, resume: doc.resume, largeGauge: doc.largeGauge === true };
     },
-    savePrefs: (prefs) => write(KEYS.prefs, { unit: prefs.unit, resume: prefs.resume }),
+    savePrefs: (prefs) => write(KEYS.prefs, { unit: prefs.unit, resume: prefs.resume, largeGauge: prefs.largeGauge === true }),
     loadLast() {
       const doc = read(KEYS.last);
       return doc && UNITS.includes(doc.unit) && doc.job && typeof doc.job === 'object' ? { unit: doc.unit, job: doc.job } : null;
