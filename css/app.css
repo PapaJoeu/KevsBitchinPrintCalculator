@@ -59,7 +59,7 @@ main {
 .summary .actions { display: flex; gap: 6px; }
 
 /* Visualizer: capped so it never pushes the sequence off screen */
-.visualizer canvas {
+.sheetView canvas {
   display: block;
   width: 100%;
   height: min(40vh, 360px);
@@ -127,7 +127,7 @@ table.scores th { background: var(--face); font-weight: normal; }
 @media (min-width: 900px) {
   .window { max-width: 1400px; margin: 12px auto; }
   main { grid-template-columns: minmax(320px, 1fr) minmax(0, 1.4fr); }
-  .visualizer canvas { height: 360px; }
+  .sheetView canvas { height: 360px; }
 }
 
 /* Advanced section: a disclosure header that doubles as a live summary */
