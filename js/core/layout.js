@@ -18,6 +18,15 @@ function assertPositive(name, obj, keys, { allowZero }) {
   }
 }
 
+function assertCount(count) {
+  for (const key of ['across', 'down']) {
+    const value = count[key];
+    if (value !== undefined && !(Number.isInteger(value) && value >= 1)) {
+      throw new RangeError(`count.${key} must be a positive integer or absent, got ${value}`);
+    }
+  }
+}
+
 function countAlong(regionSize, docSize, gutterSize) {
   // n documents need n*doc + (n-1)*gutter <= region. The epsilon keeps an exact
   // fit (e.g. 0.3 / 0.1 = 2.9999999999999996) from losing a document; the floor
@@ -65,18 +74,21 @@ export function placeBlock(sheet, printable, npa, imposed) {
  * @param sheet    { width, length } inches, both > 0
  * @param doc      { width, length } inches, both > 0
  * @param gutter   { columns, rows } inches, both >= 0: the gutter between columns, and between rows
- * @param options  { npa }  npa = { top, bottom, left, right } inches >= 0, default all zero.
- *   The non-printable area only constrains placement; it never appears in the cut list.
+ * @param options  { npa, count }
+ *   npa   = { top, bottom, left, right } inches >= 0, default all zero. Constrains placement only.
+ *   count = { across?, down? } positive integers; an absent value means auto.
  */
-export function computeLayout(sheet, doc, gutter, { npa = NO_NPA } = {}) {
+export function computeLayout(sheet, doc, gutter, { npa = NO_NPA, count = {} } = {}) {
   assertPositive('sheet', sheet, ['width', 'length'], { allowZero: false });
   assertPositive('doc', doc, ['width', 'length'], { allowZero: false });
   assertPositive('gutter', gutter, ['columns', 'rows'], { allowZero: true });
   assertPositive('npa', npa, EDGES, { allowZero: true });
+  assertCount(count);
 
   const printable = printableRegion(sheet, npa);
   const auto = fitCount(printable, doc, gutter);
-  const { across, down } = auto;
+  const across = count.across ?? auto.across;
+  const down = count.down ?? auto.down;
   if (across < 1 || down < 1) {
     return { fits: false, across, down, auto, printable, npa, sheet, doc, gutter };
   }
@@ -85,6 +97,11 @@ export function computeLayout(sheet, doc, gutter, { npa = NO_NPA } = {}) {
     width: doc.width * across + gutter.columns * (across - 1),
     length: doc.length * down + gutter.rows * (down - 1),
   };
+  // Only an override can ask for a block the physical sheet cannot hold.
+  if (imposed.width > sheet.width + EPSILON || imposed.length > sheet.length + EPSILON) {
+    return { fits: false, across, down, auto, printable, npa, imposed, sheet, doc, gutter };
+  }
+
   const margins = placeBlock(sheet, printable, npa, imposed);
   const docs = [];
   for (let row = 0; row < down; row++) {
