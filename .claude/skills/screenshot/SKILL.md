@@ -71,8 +71,11 @@ python .claude/skills/screenshot/shoot.py http://localhost:8080/ 390 844 out.png
   --print "const c=document.getElementById('canvas'); c.width+'x'+c.height+' backing / '+c.clientWidth+'x'+c.clientHeight+' css'"
 ```
 
-Note `--eval` and `--print` run **before** the screenshot, so a click and its
-resulting shot happen in one invocation.
+Steps run **in the order given**, before the screenshot: `--print A --eval click
+--print A` reads A, clicks, reads A again. After `location.reload()` or
+`location.replace()` add `--wait 2` before the next `--print`; use
+`--wait <seconds>` to let a timer fire. Each invocation is a fresh Chrome
+profile, so `localStorage` starts empty — seed it with `--eval`, then reload.
 
 ## Selectors worth knowing
 

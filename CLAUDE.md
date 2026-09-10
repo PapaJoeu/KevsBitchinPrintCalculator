@@ -72,8 +72,11 @@ keys each one into the machine separately.
 Use `.claude/skills/screenshot/shoot.py` (see its SKILL.md), never
 `chrome --headless --window-size` — that lays out at ~500px and crops, so
 mobile bugs are invented and real ones hidden. Prefer `--print` (read live DOM
-state) over eyeballing pixels. All `--eval`s run before any `--print`; to
-observe state between two actions, use two invocations.
+state) over eyeballing pixels. Steps run in the order given; after a reload
+add `--wait 2`. For anything under `js/ui/`, `css/`, or `index.html` — none of
+which have unit tests — dispatch the `live-verifier` agent and accept only
+observed results. Ship with `/deploy`, which refuses a push that would leave
+phones on a stale cache.
 
 ## Gotchas
 

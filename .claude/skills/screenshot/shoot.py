@@ -9,16 +9,17 @@ Only Emulation.setDeviceMetricsOverride sets a true viewport.
 Dependency-free on purpose (matches this project): raw sockets, no pip installs.
 
 Usage:
-  python shoot.py <url> <width> <height> <out.png> [--clip SELECTOR] [--eval JS]...
+  python shoot.py <url> <width> <height> <out.png> [steps...] [--clip SELECTOR | --full]
   python shoot.py http://localhost:8080/ 390 844 shot.png
   python shoot.py http://localhost:8080/ 390 844 seq.png --clip "#sequence"
-  python shoot.py http://localhost:8080/ 390 844 out.png \
-      --eval "document.querySelector('#foldInputs button[data-style=\\"bifold\\"]').click()" \
-      --print "document.querySelectorAll('li.step').length"
+  python shoot.py http://localhost:8080/ 390 844 out.png       --print "document.querySelector('#summary .nup').textContent"       --eval "document.querySelector('#docInputs .chips button:nth-child(2)').click()"       --print "document.querySelector('#summary .nup').textContent"
 
---eval runs JS before the shot (repeatable, in order). --print evaluates and
-prints the result (repeatable) — use it to read live state instead of guessing
-from pixels. --full captures the whole scrollable page.
+Steps run IN THE ORDER GIVEN, before the shot:
+  --eval JS      run JS (a returned promise is awaited)
+  --print JS     evaluate JS and print the result — read live state, don't squint at pixels
+  --wait SECS    pause, e.g. after location.reload() or to let a timer fire
+So "--print A --eval click --print A" reads A, clicks, reads A again: two
+different values if the click changed it. --full captures the whole page.
 """
 import base64, json, os, shutil, socket, subprocess, sys, tempfile, time
 from urllib.request import urlopen
@@ -138,13 +139,11 @@ def main():
     if len(args) < 4:
         sys.exit(__doc__)
     url, width, height, out = args[0], int(args[1]), int(args[2]), args[3]
-    evals, prints, clip, full = [], [], None, False
+    steps, clip, full = [], None, False
     i = 4
     while i < len(args):
-        if args[i] == "--eval":
-            evals.append(args[i + 1]); i += 2
-        elif args[i] == "--print":
-            prints.append(args[i + 1]); i += 2
+        if args[i] in ("--eval", "--print", "--wait"):
+            steps.append((args[i], args[i + 1])); i += 2
         elif args[i] == "--clip":
             clip = args[i + 1]; i += 2
         elif args[i] == "--full":
@@ -179,12 +178,17 @@ def main():
         cdp.call("Page.navigate", {"url": url})
         time.sleep(2.5)
 
-        for expression in evals:
-            cdp.js(expression)
-        if evals:
-            time.sleep(0.8)
-        for expression in prints:
-            print(f"{expression}  ->  {cdp.js(expression)}")
+        # Steps run in argv order. An --eval that navigates (location.reload,
+        # location.replace) needs an explicit --wait after it; a plain click
+        # re-renders synchronously, so the short settle below is enough.
+        for kind, value in steps:
+            if kind == "--eval":
+                cdp.js(value)
+                time.sleep(0.3)
+            elif kind == "--print":
+                print(f"{value}  ->  {cdp.js(value)}")
+            else:
+                time.sleep(float(value))
 
         params = {"format": "png", "captureBeyondViewport": True}
         if clip:
