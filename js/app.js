@@ -3,6 +3,9 @@ import { computeLayout, suggestOrientation } from './core/layout.js';
 import { computeSequence } from './core/sequence.js';
 import { computeScores } from './core/scores.js';
 import { mmToInches, inchesToMm } from './core/measure.js';
+import { encodeJob, decodeJob } from './core/share.js';
+import { recordJob } from './core/history.js';
+import { createStorage, browserStorage } from './storage.js';
 import { PRESETS, DEFAULTS } from './ui/presets.js';
 import { createSizeInputs } from './ui/sizeInputs.js';
 import { createFoldInputs } from './ui/foldInputs.js';
@@ -11,20 +14,39 @@ import { renderSummary } from './ui/summaryView.js';
 import { renderSequence } from './ui/sequenceView.js';
 import { renderScores } from './ui/scoresView.js';
 import { createSheetView } from './ui/sheetView.js';
-import { formatShort } from './ui/format.js';
 import { createTabs } from './ui/tabs.js';
 import { createCopyLink } from './ui/copyLink.js';
-import { encodeJob } from './core/share.js';
+import { formatShort } from './ui/format.js';
 
 const $ = (id) => document.getElementById(id);
+const TABS = [{ id: 'calculator', label: 'Calculator' }, { id: 'history', label: 'History' }, { id: 'preferences', label: 'Preferences' }];
+const DEFAULT_PREFS = { unit: 'in', resume: false };
+// A job goes into history once it has sat unchanged this long (and fits).
+const SETTLE_MS = 15000;
+
+const storage = createStorage(browserStorage());
+
+/** A stored job is trusted only if it survives the codec — the same validation a shared link gets. */
+function sanitize(unit, job) {
+  try {
+    return decodeJob(encodeJob(unit, job, DEFAULTS[unit]), DEFAULTS);
+  } catch {
+    return null;
+  }
+}
 
 // The job is everything the worker entered, in the current unit exactly as typed;
-// compute() converts to inches at the boundary.
+// compute() converts to inches at the boundary. prefs and history are the in-memory
+// mirror of storage: views render from state, storage is written after a change.
 const state = {
   unit: 'in',
   job: structuredClone(DEFAULTS.in),
   hintDismissed: false,
+  tab: 'calculator',
+  prefs: storage.loadPrefs() ?? { ...DEFAULT_PREFS },
+  history: storage.loadHistory().filter((entry) => Number.isFinite(entry?.at) && sanitize(entry.unit, entry.job) !== null),
 };
+let settleTimer = null;
 
 const sections = {
   sheet: createSizeInputs($('sheetInputs'), { label: 'Sheet', onChange: (sheet) => update({ sheet }) }),
@@ -38,22 +60,16 @@ const foldInputs = createFoldInputs($('foldInputs'), { onChange: (fold) => updat
 const advancedInputs = createAdvancedInputs($('advancedInputs'), { onChange: (patch) => update(patch) });
 const sheetView = createSheetView($('canvas'));
 const NO_SCORES = { offsets: [], positions: [], segments: [] };
-
-const TABS = [{ id: 'calculator', label: 'Calculator' }, { id: 'history', label: 'History' }, { id: 'preferences', label: 'Preferences' }];
 const tabs = createTabs($('tabs'), TABS, { onSelect: showTab });
-$('shareBar').append(createCopyLink(() => `${window.location.origin}${window.location.pathname}#${encodeJob(state.unit, state.job, DEFAULTS[state.unit])}`));
+$('shareBar').append(createCopyLink(() => urlFor(state.unit, state.job)));
 
-function showTab(id) {
-  for (const tab of TABS) $(`panel-${tab.id}`).hidden = tab.id !== id;
-  tabs.select(id);
-}
+const toInchesIn = (unit) => (value) => (unit === 'mm' ? mmToInches(value) : value);
 
-const toInches = (value) => (state.unit === 'mm' ? mmToInches(value) : value);
-const sizeToInches = (size) => ({ width: toInches(size.width), length: toInches(size.length) });
-
-const edgesToInches = (edges) => Object.fromEntries(Object.entries(edges).map(([edge, v]) => [edge, toInches(v)]));
-
-function compute(job) {
+/** Everything the views need for a job, converted to inches at this one boundary. */
+function compute(job, unit) {
+  const toInches = toInchesIn(unit);
+  const sizeToInches = (size) => ({ width: toInches(size.width), length: toInches(size.length) });
+  const edgesToInches = (edges) => Object.fromEntries(Object.entries(edges).map(([edge, v]) => [edge, toInches(v)]));
   const sheet = sizeToInches(job.sheet);
   const doc = sizeToInches(job.doc);
   const gutter = { columns: toInches(job.gutter.columns), rows: toInches(job.gutter.rows) };
@@ -72,8 +88,13 @@ function compute(job) {
   return { layout, suggestion, steps: computeSequence(layout), scores: computeScores(layout, fold) };
 }
 
+/** The shareable link for a job: this page, with the job in the hash. */
+function urlFor(unit, job) {
+  return `${window.location.origin}${window.location.pathname}#${encodeJob(unit, job, DEFAULTS[unit])}`;
+}
+
 function render() {
-  const result = compute(state.job);
+  const result = compute(state.job, state.unit);
   foldInputs.setDocSize(state.job.doc);
   advancedInputs.setAuto(result.layout.auto);
   renderSummary($('summary'), result, {
@@ -88,6 +109,9 @@ function render() {
   renderScores($('scores'), result, state.job.fold, state.unit);
   sheetView.draw(result.layout, result.scores, (inches) => formatShort(inches, state.unit));
   $('legend').hidden = result.scores.segments.length === 0;
+  // The address bar mirrors the job: a bookmark is a saved job and Share shares the
+  // setup. replaceState, never pushState — the Back button is left alone.
+  window.history.replaceState(null, '', `#${encodeJob(state.unit, state.job, DEFAULTS[state.unit])}`);
 }
 
 /** Apply a validated change to the job. Any change re-arms the orientation hint. */
@@ -95,6 +119,23 @@ function update(patch) {
   Object.assign(state.job, patch);
   state.hintDismissed = false;
   render();
+  afterChange();
+}
+
+/** After any change: keep the resume job current, and restart the settle timer. */
+function afterChange() {
+  if (state.prefs.resume) storage.saveLast(state.unit, state.job);
+  clearTimeout(settleTimer);
+  settleTimer = setTimeout(recordSettled, SETTLE_MS);
+}
+
+/** The job has sat unchanged for SETTLE_MS: record it if it fits. */
+function recordSettled() {
+  if (!compute(state.job, state.unit).layout.fits) return;
+  state.history = recordJob(state.history, state.unit, state.job, Date.now());
+  storage.saveHistory(state.history);
+  tabs.setBadge('history', state.history.length);
+  if (state.tab === 'history') renderHistoryPanel();
 }
 
 /** Turn the sheet or document 90°. The section swaps its own value and reports it through onChange. */
@@ -134,10 +175,14 @@ function applyFix(action) {
   advancedInputs.setValue({ npa: state.job.npa, count: state.job.count, align: state.job.align }, state.unit, DEFAULTS[state.unit].npa.top);
 }
 
-/** A new unit is a new job: reset to that unit's defaults (jobs are entered fresh). */
-function setUnit(unit) {
+/**
+ * The one path by which a job reaches the inputs — a shared link, a history entry,
+ * the resumed job, or the unit toggle. Sets the unit, replaces the job, re-arms the
+ * hint, and pushes the values into every section.
+ */
+function loadJob(unit, job) {
   state.unit = unit;
-  state.job = structuredClone(DEFAULTS[unit]);
+  state.job = structuredClone(job);
   state.hintDismissed = false;
   for (const kind of ['sheet', 'doc', 'gutter']) sections[kind].setPresets(PRESETS[unit][kind], state.job[kind]);
   foldInputs.setValue(state.job.fold, unit);
@@ -146,14 +191,37 @@ function setUnit(unit) {
     button.setAttribute('aria-pressed', String(button.dataset.unit === unit));
   }
   render();
+  afterChange();
 }
+
+/** A new unit is a new job: reset to that unit's defaults (jobs are entered fresh). */
+function setUnit(unit) {
+  loadJob(unit, DEFAULTS[unit]);
+}
+
+function showTab(id) {
+  state.tab = id;
+  for (const tab of TABS) $(`panel-${tab.id}`).hidden = tab.id !== id;
+  tabs.select(id);
+  if (id === 'history') renderHistoryPanel();
+}
+
+/** The History view arrives with its own task; until then the panel stays empty. */
+function renderHistoryPanel() {}
 
 for (const button of $('unitChips').children) {
   button.addEventListener('click', () => setUnit(button.dataset.unit));
 }
 
+// Open on: the job in the link, else the resumed job, else a fresh job in the preferred unit.
+const shared = decodeJob(window.location.hash, DEFAULTS);
+const last = state.prefs.resume ? storage.loadLast() : null;
+const resumed = last ? sanitize(last.unit, last.job) : null;
+if (shared) loadJob(shared.unit, shared.job);
+else if (resumed) loadJob(resumed.unit, resumed.job);
+else loadJob(state.prefs.unit, DEFAULTS[state.prefs.unit]);
 showTab('calculator');
-setUnit('in');
+tabs.setBadge('history', state.history.length);
 
 // Offline shell. When a new version takes over an open page, reload once to run it.
 if ('serviceWorker' in navigator) {
