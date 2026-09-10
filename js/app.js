@@ -6,6 +6,7 @@ import { mmToInches } from './core/measure.js';
 import { PRESETS, DEFAULTS } from './ui/presets.js';
 import { createSizeInputs } from './ui/sizeInputs.js';
 import { createFoldInputs } from './ui/foldInputs.js';
+import { createAdvancedInputs } from './ui/advancedInputs.js';
 import { renderSummary } from './ui/summaryView.js';
 import { renderSequence } from './ui/sequenceView.js';
 import { renderScores } from './ui/scoresView.js';
@@ -31,18 +32,24 @@ const sections = {
   }),
 };
 const foldInputs = createFoldInputs($('foldInputs'), { onChange: (fold) => update({ fold }) });
+const advancedInputs = createAdvancedInputs($('advancedInputs'), { onChange: (patch) => update(patch) });
 const sheetView = createSheetView($('canvas'));
 const NO_SCORES = { offsets: [], positions: [], segments: [] };
 
 const toInches = (value) => (state.unit === 'mm' ? mmToInches(value) : value);
 const sizeToInches = (size) => ({ width: toInches(size.width), length: toInches(size.length) });
 
+const edgesToInches = (edges) => Object.fromEntries(Object.entries(edges).map(([edge, v]) => [edge, toInches(v)]));
+
 function compute(job) {
   const sheet = sizeToInches(job.sheet);
   const doc = sizeToInches(job.doc);
   const gutter = { columns: toInches(job.gutter.columns), rows: toInches(job.gutter.rows) };
-  const layout = computeLayout(sheet, doc, gutter);
-  const suggestion = suggestOrientation(sheet, doc, gutter);
+  const options = { npa: edgesToInches(job.npa), count: job.count, align: edgesToInches(job.align) };
+  const layout = computeLayout(sheet, doc, gutter, options);
+  // A forced count is deliberate; "turning fits more" is noise against it.
+  const overridden = job.count.across !== undefined || job.count.down !== undefined;
+  const suggestion = overridden ? null : suggestOrientation(sheet, doc, gutter, { npa: options.npa });
   if (!layout.fits) return { layout, suggestion, steps: [], scores: NO_SCORES };
   const fold = {
     style: job.fold.style,
@@ -56,6 +63,7 @@ function compute(job) {
 function render() {
   const result = compute(state.job);
   foldInputs.setDocSize(state.job.doc);
+  advancedInputs.setAuto(result.layout.auto);
   renderSummary($('summary'), result, {
     unit: state.unit,
     hintDismissed: state.hintDismissed,
@@ -95,6 +103,7 @@ function setUnit(unit) {
   state.hintDismissed = false;
   for (const kind of ['sheet', 'doc', 'gutter']) sections[kind].setPresets(PRESETS[unit][kind], state.job[kind]);
   foldInputs.setValue(state.job.fold, unit);
+  advancedInputs.setValue({ npa: state.job.npa, count: state.job.count, align: state.job.align }, unit, DEFAULTS[unit].npa.top);
   for (const button of $('unitChips').children) {
     button.setAttribute('aria-pressed', String(button.dataset.unit === unit));
   }

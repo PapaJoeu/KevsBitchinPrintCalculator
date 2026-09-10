@@ -89,6 +89,10 @@ resulting shot happen in one invocation.
 | Fold style buttons | `#foldInputs button[data-style="bifold"]` |
 | Fold axis buttons | `#foldInputs button[data-axis="W"]` |
 | Unit toggle | `#unitChips button[data-unit="mm"]` |
+| Advanced disclosure | `#advancedInputs .disclosure` |
+| NPA field | `#advancedInputs input[aria-label="Non-printable top"]` |
+| Count field | `#advancedInputs input[aria-label="Documents across"]` |
+| Alignment chip | `#advancedInputs button[data-edge="top"]` |
 
 ## Expected baseline
 

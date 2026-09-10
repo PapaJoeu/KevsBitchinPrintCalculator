@@ -14,6 +14,7 @@ const SHELL = [
   './js/core/measure.js',
   './js/core/scores.js',
   './js/core/sequence.js',
+  './js/ui/advancedInputs.js',
   './js/ui/dom.js',
   './js/ui/foldInputs.js',
   './js/ui/format.js',

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatMeasure, formatShort, unitName, stepNote } from '../js/ui/format.js';
+import { formatMeasure, formatShort, unitName, stepNote, formatFraction } from '../js/ui/format.js';
 
 test('formats inches to three places and millimetres to one', () => {
   assert.equal(formatMeasure(17.5625, 'in'), '17.563');
@@ -30,4 +30,14 @@ test('describes each kind of step by what it removes', () => {
   assert.equal(stepNote(step('margin', { edge: 'right' })), 'Trim right margin');
   assert.equal(stepNote(step('strip')), 'Cut off next strip');
   assert.equal(stepNote(step('gutter')), 'Trim gutter');
+});
+
+test('renders sixteenths as fractions for inch labels', () => {
+  assert.equal(formatFraction(0.0625), '1/16');
+  assert.equal(formatFraction(0.125), '1/8');
+  assert.equal(formatFraction(0.75), '3/4');
+  assert.equal(formatFraction(1.5), '1 1/2');
+  assert.equal(formatFraction(2), '2');
+  assert.equal(formatFraction(0), '0');
+  assert.equal(formatFraction(0.1), '0.1'); // not a sixteenth: as typed
 });

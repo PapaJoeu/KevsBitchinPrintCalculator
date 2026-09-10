@@ -35,3 +35,10 @@ test('folds default to off along the length, with a 1/16" trifold allowance', ()
   assert.deepEqual(DEFAULTS.in.fold, { style: 'none', axis: 'L', allowance: 0.0625, custom: [] });
   assert.equal(DEFAULTS.mm.fold.style, 'none');
 });
+
+test('the job starts with a 1/16" non-printable area, auto count, and centred alignment', () => {
+  assert.deepEqual(DEFAULTS.in.npa, { top: 0.0625, bottom: 0.0625, left: 0.0625, right: 0.0625 });
+  assert.deepEqual(DEFAULTS.mm.npa, { top: 1.5, bottom: 1.5, left: 1.5, right: 1.5 });
+  assert.deepEqual(DEFAULTS.in.count, {});
+  assert.deepEqual(DEFAULTS.in.align, {});
+});

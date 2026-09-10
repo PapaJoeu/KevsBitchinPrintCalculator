@@ -25,3 +25,15 @@ export function stepNote(step) {
     default: return '';
   }
 }
+
+/** Sixteenths as a fraction for inch labels: 0.0625 -> "1/16", 1.5 -> "1 1/2", 2 -> "2"; anything else as typed. */
+export function formatFraction(value) {
+  const sixteenths = value * 16;
+  if (!Number.isInteger(sixteenths)) return String(value);
+  const whole = Math.floor(sixteenths / 16);
+  let n = sixteenths - whole * 16;
+  if (n === 0) return String(whole);
+  let d = 16;
+  while (n % 2 === 0) { n /= 2; d /= 2; }
+  return whole ? `${whole} ${n}/${d}` : `${n}/${d}`;
+}

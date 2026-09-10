@@ -3,6 +3,7 @@
 
 const size = (width, length) => ({ width, length });
 const gutter = (columns, rows, label) => (label ? { columns, rows, label } : { columns, rows });
+const npa = (all) => ({ top: all, bottom: all, left: all, right: all });
 
 export const PRESETS = {
   in: {
@@ -22,10 +23,12 @@ export const PRESETS = {
 export const DEFAULTS = {
   in: {
     sheet: size(12, 18), doc: size(3.5, 2), gutter: gutter(0.125, 0.125),
+    npa: npa(0.0625), count: {}, align: {},
     fold: { style: 'none', axis: 'L', allowance: 0.0625, custom: [] },
   },
   mm: {
     sheet: size(320, 450), doc: size(90, 55), gutter: gutter(3, 3),
+    npa: npa(1.5), count: {}, align: {},
     fold: { style: 'none', axis: 'L', allowance: 1.5, custom: [] },
   },
 };
