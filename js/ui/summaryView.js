@@ -33,7 +33,7 @@ export function renderSummary(container, { layout, steps, suggestion }, { unit, 
     const autoCount = layout.auto.across * layout.auto.down;
     children.push(
       el('div', { class: 'nup' }, `${count}-up${count !== autoCount ? ` (auto would be ${autoCount})` : ''}`),
-      el('p', { class: 'detail' }, `${layout.across} across × ${layout.down} down · ${steps.length} cuts`),
+      el('p', { class: 'detail lead' }, `${layout.across} across × ${layout.down} down · ${steps.length} cuts`),
     );
     if (hasNpa(layout.npa)) children.push(el('p', { class: 'detail' }, `Printable ${fmt(layout.printable.width)} × ${fmt(layout.printable.length)}`));
     const m = layout.margins;
