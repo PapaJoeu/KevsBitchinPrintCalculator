@@ -10,6 +10,7 @@ const SHELL = [
   './css/win98.css',
   './css/app.css',
   './js/app.js',
+  './js/storage.js',
   './js/core/history.js',
   './js/core/layout.js',
   './js/core/measure.js',
