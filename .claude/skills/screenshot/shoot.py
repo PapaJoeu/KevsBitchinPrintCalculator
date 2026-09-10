@@ -23,6 +23,14 @@ from pixels. --full captures the whole scrollable page.
 import base64, json, os, shutil, socket, subprocess, sys, tempfile, time
 from urllib.request import urlopen
 
+# Windows consoles often default stdout to cp1252, which can't encode arbitrary
+# page text (arrows, curly quotes, fractions like the Rotate button's '↻').
+# Fall back to replacing unencodable characters rather than crashing mid-run.
+try:
+    sys.stdout.reconfigure(errors="backslashreplace")
+except Exception:
+    pass
+
 DEBUG_PORT = int(os.environ.get("CDP_PORT", "9432"))
 
 
