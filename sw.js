@@ -1,7 +1,7 @@
 // sw.js — offline app shell. Cache-first so the app opens instantly with no signal.
 // Bump VERSION on every deploy that changes a cached file; the old cache is dropped
 // on activate and the open page reloads itself once (see app.js).
-const VERSION = 'v4';
+const VERSION = 'v5';
 const CACHE = `printcalc-${VERSION}`;
 const SHELL = [
   './',

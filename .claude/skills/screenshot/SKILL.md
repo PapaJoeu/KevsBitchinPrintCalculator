@@ -93,12 +93,23 @@ resulting shot happen in one invocation.
 | NPA field | `#advancedInputs input[aria-label="Non-printable top"]` |
 | Count field | `#advancedInputs input[aria-label="Documents across"]` |
 | Alignment chip | `#advancedInputs button[data-edge="top"]` |
+| Tab buttons | `#tab-calculator`, `#tab-history`, `#tab-preferences` |
+| History badge | `#tab-history .badge` |
+| History rows | `.history-row` (tap target `.history-open`, delete `.delete`) |
+| Clear history | `#history .clear` |
+| Preference chips | `#preferences button[data-pref="unit"][data-value="mm"]` |
+| Copy link (calculator) | `#shareBar button` |
 
 ## Expected baseline
 
 On load with the default business-card job (3.5x2 on 12x18, 1/8" gutters):
 **24-up**, 22 step rows, 4 turn bands, and the "fits 25-up instead of 24-up"
 orientation hint. If those differ, something regressed.
+
+The address bar reads `#v=1&u=in&s=12x18&d=3.5x2&g=0.125x0.125` on load. Each
+invocation is a fresh profile, so `localStorage` starts empty — seed it with
+`--eval`, then `location.replace(location.pathname)` and a
+`new Promise((r) => setTimeout(r, 2000))` eval before reading.
 
 ## Offline testing
 

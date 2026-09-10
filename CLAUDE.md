@@ -46,6 +46,11 @@ keys each one into the machine separately.
 - `js/ui/` — rendering and events, driven by `js/app.js`'s single render loop.
 - `gutter` is `{ columns, rows }` — the gutter between columns and between rows.
 - `js/app.js` keeps everything the worker entered under `state.job` in the current unit.
+- `js/storage.js` is the **only** file that touches `localStorage`; every call is
+  wrapped, so the app must work with no storage at all. `js/core/share.js` is the
+  job ⇄ URL-hash codec and takes `DEFAULTS` as a parameter (core never imports ui).
+- `loadJob(unit, job)` in `js/app.js` is the one path by which a job reaches the
+  inputs — a link, a history row, the resumed job, or the unit toggle.
 
 ## Design decisions that look like bugs
 
@@ -57,6 +62,9 @@ keys each one into the machine separately.
 - `applyRotation` deliberately leaves `state.job.fold.axis` alone — the axis is
   sheet-relative.
 - **NPA, alignment, and offsets are sheet-relative and do not rotate with the sheet**, like the fold axis.
+- The address bar mirrors the job on every render (`replaceState`, never
+  `pushState`): a bookmark is a saved job. History records a job only after it
+  sits unchanged for 15 s and fits; `last` (resume) is written on every change.
 
 ## Verifying UI
 
