@@ -5,7 +5,10 @@
 // strip cuts (doc + gutter) apart, followed by gutter trims. The final strip cut
 // lands on the document dimension and is the first gutter trim, so an axis with n documents
 // ends with n cuts at that dimension. Every cut is its own step: the list is keyed
-// into the cutter one step at a time.
+// into the cutter one step at a time. A margin cut exists on an edge iff that edge's
+// margin is greater than zero.
+
+const EPSILON = 1e-9;
 
 /**
  * @param layout  result of computeLayout with fits: true
@@ -31,10 +34,13 @@ export function computeSequence(layout) {
     });
   };
 
-  cut('L', sheet.length - margins.top, 'margin', 'top');
-  cut('W', sheet.width - margins.left, 'margin', 'left');
-  cut('L', imposed.length, 'margin', 'bottom');
-  cut('W', imposed.width, 'margin', 'right');
+  // A margin cut exists on an edge iff there is a margin to remove. A block flush
+  // to an edge (offset 0) keeps the sheet's own edge as its reference and gets no cut
+  // there; an exact fit gets none on that axis. Survivors keep this order.
+  if (margins.top > EPSILON) cut('L', sheet.length - margins.top, 'margin', 'top');
+  if (margins.left > EPSILON) cut('W', sheet.width - margins.left, 'margin', 'left');
+  if (margins.bottom > EPSILON) cut('L', imposed.length, 'margin', 'bottom');
+  if (margins.right > EPSILON) cut('W', imposed.width, 'margin', 'right');
   cutAxis(cut, 'W', imposed.width, doc.width, gutter.columns, across);
   cutAxis(cut, 'L', imposed.length, doc.length, gutter.rows, down);
   return steps;
