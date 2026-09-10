@@ -27,6 +27,16 @@ function assertCount(count) {
   }
 }
 
+function assertAlign(align) {
+  if ('top' in align && 'bottom' in align) throw new RangeError('align: choose top or bottom, not both');
+  if ('left' in align && 'right' in align) throw new RangeError('align: choose left or right, not both');
+  for (const edge of EDGES) {
+    if (edge in align && !(Number.isFinite(align[edge]) && align[edge] >= 0)) {
+      throw new RangeError(`align.${edge} must be zero or more, got ${align[edge]}`);
+    }
+  }
+}
+
 function countAlong(regionSize, docSize, gutterSize) {
   // n documents need n*doc + (n-1)*gutter <= region. The epsilon keeps an exact
   // fit (e.g. 0.3 / 0.1 = 2.9999999999999996) from losing a document; the floor
@@ -51,39 +61,52 @@ export function fitCount(region, doc, gutter) {
 }
 
 /**
- * The four margins that put a block on the sheet: centred within the printable
- * region, then kept on the sheet. A block larger than the printable region (only a
- * count override can make one) is clamped rather than hung off an edge.
- *
- * Precondition: `imposed` must fit the sheet itself (imposed.width <= sheet.width and
- * imposed.length <= sheet.length). computeLayout enforces this before calling
- * placeBlock; a block that does not fit the sheet is not this function's job to detect.
+ * The four margins that put a block on the sheet. Per axis: a chosen edge takes its
+ * offset as the margin and the far edge gets all the slack; with no edge chosen the
+ * block is centred within the printable region and kept on the sheet (a block larger
+ * than the printable region — only a count override makes one — is clamped rather
+ * than hung off an edge). Offsets are measured from the physical sheet edge and are
+ * never clamped: one that runs the block off the far edge shows up as a negative far
+ * margin, which computeLayout reports as not fitting.
  */
-export function placeBlock(sheet, printable, npa, imposed) {
-  const axis = (total, printableSize, blockSize, nearNpa) => {
+export function placeBlock(sheet, printable, npa, imposed, align = {}) {
+  const axis = (total, printableSize, blockSize, nearNpa, nearOffset, farOffset) => {
     const room = total - blockSize;
-    const near = Math.min(Math.max(nearNpa + (printableSize - blockSize) / 2, 0), room);
+    let near;
+    if (nearOffset !== undefined) near = nearOffset;
+    else if (farOffset !== undefined) near = room - farOffset;
+    else near = Math.min(Math.max(nearNpa + (printableSize - blockSize) / 2, 0), room);
     return [near, room - near];
   };
-  const [top, bottom] = axis(sheet.length, printable.length, imposed.length, npa.top);
-  const [left, right] = axis(sheet.width, printable.width, imposed.width, npa.left);
+  const [top, bottom] = axis(sheet.length, printable.length, imposed.length, npa.top, align.top, align.bottom);
+  const [left, right] = axis(sheet.width, printable.width, imposed.width, npa.left, align.left, align.right);
   return { top, bottom, left, right };
+}
+
+/** Edges where the block sits inside the non-printable area, as { edge, amount } with amount > 0. */
+export function findViolations(margins, npa) {
+  return EDGES
+    .filter((edge) => npa[edge] - margins[edge] > EPSILON)
+    .map((edge) => ({ edge, amount: npa[edge] - margins[edge] }));
 }
 
 /**
  * @param sheet    { width, length } inches, both > 0
  * @param doc      { width, length } inches, both > 0
  * @param gutter   { columns, rows } inches, both >= 0: the gutter between columns, and between rows
- * @param options  { npa, count }
+ * @param options  { npa, count, align }
  *   npa   = { top, bottom, left, right } inches >= 0, default all zero. Constrains placement only.
  *   count = { across?, down? } positive integers; an absent value means auto.
+ *   align = { top?, bottom?, left?, right? } with the offset (inches from the physical
+ *           edge) as the value; at most one of top/bottom and one of left/right.
  */
-export function computeLayout(sheet, doc, gutter, { npa = NO_NPA, count = {} } = {}) {
+export function computeLayout(sheet, doc, gutter, { npa = NO_NPA, count = {}, align = {} } = {}) {
   assertPositive('sheet', sheet, ['width', 'length'], { allowZero: false });
   assertPositive('doc', doc, ['width', 'length'], { allowZero: false });
   assertPositive('gutter', gutter, ['columns', 'rows'], { allowZero: true });
   assertPositive('npa', npa, EDGES, { allowZero: true });
   assertCount(count);
+  assertAlign(align);
 
   const printable = printableRegion(sheet, npa);
   const auto = fitCount(printable, doc, gutter);
@@ -102,7 +125,12 @@ export function computeLayout(sheet, doc, gutter, { npa = NO_NPA, count = {} } =
     return { fits: false, across, down, auto, printable, npa, imposed, sheet, doc, gutter };
   }
 
-  const margins = placeBlock(sheet, printable, npa, imposed);
+  const margins = placeBlock(sheet, printable, npa, imposed, align);
+  // An explicit offset is honoured exactly; if it runs the block off the sheet, nothing fits.
+  if (EDGES.some((edge) => margins[edge] < -EPSILON)) {
+    return { fits: false, across, down, auto, printable, npa, imposed, margins, sheet, doc, gutter };
+  }
+  const violations = findViolations(margins, npa);
   const docs = [];
   for (let row = 0; row < down; row++) {
     for (let col = 0; col < across; col++) {
@@ -114,7 +142,7 @@ export function computeLayout(sheet, doc, gutter, { npa = NO_NPA, count = {} } =
       });
     }
   }
-  return { fits: true, across, down, auto, printable, npa, imposed, margins, docs, sheet, doc, gutter };
+  return { fits: true, across, down, auto, printable, npa, imposed, margins, violations, docs, sheet, doc, gutter };
 }
 
 const turned = ({ width, length }) => ({ width: length, length: width });
