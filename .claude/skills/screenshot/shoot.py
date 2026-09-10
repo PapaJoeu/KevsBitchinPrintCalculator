@@ -13,7 +13,7 @@ Usage:
   python shoot.py http://localhost:8080/ 390 844 shot.png
   python shoot.py http://localhost:8080/ 390 844 seq.png --clip "#sequence"
   python shoot.py http://localhost:8080/ 390 844 out.png \
-      --eval "document.querySelector('#foldControls button[data-style=\\"bifold\\"]').click()" \
+      --eval "document.querySelector('#foldInputs button[data-style=\\"bifold\\"]').click()" \
       --print "document.querySelectorAll('li.step').length"
 
 --eval runs JS before the shot (repeatable, in order). --print evaluates and
