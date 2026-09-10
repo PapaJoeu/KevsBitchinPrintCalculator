@@ -1,7 +1,7 @@
 // sw.js — offline app shell. Cache-first so the app opens instantly with no signal.
 // Bump VERSION on every deploy that changes a cached file; the old cache is dropped
 // on activate and the open page reloads itself once (see app.js).
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = `printcalc-${VERSION}`;
 const SHELL = [
   './',
@@ -15,14 +15,14 @@ const SHELL = [
   './js/core/scores.js',
   './js/core/sequence.js',
   './js/ui/dom.js',
-  './js/ui/foldControls.js',
+  './js/ui/foldInputs.js',
   './js/ui/format.js',
-  './js/ui/inputs.js',
   './js/ui/presets.js',
   './js/ui/scoresView.js',
   './js/ui/sequenceView.js',
+  './js/ui/sheetView.js',
+  './js/ui/sizeInputs.js',
   './js/ui/summaryView.js',
-  './js/ui/visualizer.js',
   './assets/favicon.ico',
   './assets/icon-192.png',
   './assets/icon-512.png',

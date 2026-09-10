@@ -1,4 +1,4 @@
-// foldControls.js — fold style, fold direction, trifold wrap allowance, and custom score offsets.
+// foldInputs.js — fold style, fold direction, trifold wrap allowance, and custom score offsets.
 import { el } from './dom.js';
 import { parseMeasurement } from '../core/measure.js';
 
@@ -9,7 +9,7 @@ const AXES = [['L', 'Length'], ['W', 'Width']];
  * @param options  { onChange(fold) }  fold = { style, axis, allowance, custom } in the current unit
  * @returns { setValue(fold, unit), setDocSize({ width, length }) }
  */
-export function createFoldControls(container, { onChange }) {
+export function createFoldInputs(container, { onChange }) {
   let value = { style: 'none', axis: 'L', allowance: 0, custom: [] };
   let unit = 'in';
   let docSize = { width: 1, length: 1 };

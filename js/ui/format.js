@@ -1,14 +1,14 @@
 // format.js — the display boundary. Core math is in inches; this turns it into text.
 import { inchesToMm } from '../core/measure.js';
 
-/** A length in the given unit, without a unit label: 17.5625 -> "17.563", or "446.1" in mm. */
-export function formatLength(inches, unit) {
+/** A measurement in the given unit, without a unit label: 17.5625 -> "17.563", or "446.1" in mm. */
+export function formatMeasure(inches, unit) {
   return unit === 'mm' ? inchesToMm(inches).toFixed(1) : inches.toFixed(3);
 }
 
-/** formatLength with trailing zeros trimmed, for labels: 12 -> "12", 10.75 -> "10.75". */
+/** formatMeasure with trailing zeros trimmed, for labels: 12 -> "12", 10.75 -> "10.75". */
 export function formatShort(inches, unit) {
-  const text = formatLength(inches, unit);
+  const text = formatMeasure(inches, unit);
   return text.includes('.') ? text.replace(/0+$/, '').replace(/\.$/, '') : text;
 }
 

@@ -18,14 +18,14 @@ export const PRESETS = {
   },
 };
 
-/** The job on screen when the app opens: the business card. */
-export const DEFAULT_JOB = {
-  in: { sheet: size(12, 18), doc: size(3.5, 2), gutter: size(0.125, 0.125) },
-  mm: { sheet: size(320, 450), doc: size(90, 55), gutter: size(3, 3) },
-};
-
-/** Fold settings per unit. The allowance is 1/16" (spec "Folds"); 1.5 mm is its metric round-off. */
-export const FOLD_DEFAULTS = {
-  in: { style: 'none', axis: 'L', allowance: 0.0625, custom: [] },
-  mm: { style: 'none', axis: 'L', allowance: 1.5, custom: [] },
+/** Everything a job starts with, per unit. The trifold allowance is 1/16" (1.5 mm is its metric round-off). */
+export const DEFAULTS = {
+  in: {
+    sheet: size(12, 18), doc: size(3.5, 2), gutter: size(0.125, 0.125),
+    fold: { style: 'none', axis: 'L', allowance: 0.0625, custom: [] },
+  },
+  mm: {
+    sheet: size(320, 450), doc: size(90, 55), gutter: size(3, 3),
+    fold: { style: 'none', axis: 'L', allowance: 1.5, custom: [] },
+  },
 };

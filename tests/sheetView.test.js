@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fitSheet, canLabel } from '../js/ui/visualizer.js';
+import { fitSheet, canLabel } from '../js/ui/sheetView.js';
 
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} != ${expected}`);
 

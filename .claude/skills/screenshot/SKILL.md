@@ -59,7 +59,7 @@ pixels — read the real numbers.
 ```bash
 # Click a fold style, then count the resulting score rows
 python .claude/skills/screenshot/shoot.py http://localhost:8080/ 390 844 out.png \
-  --eval "document.querySelector('#foldControls button[data-style=\"trifold\"]').click()" \
+  --eval "document.querySelector('#foldInputs button[data-style=\"trifold\"]').click()" \
   --print "document.querySelectorAll('#scores tbody tr').length"
 
 # Prove there is no horizontal scrolling (the check that was misread before)
@@ -86,8 +86,8 @@ resulting shot happen in one invocation.
 | Sheet canvas | `#canvas` |
 | Score table rows | `#scores tbody tr` |
 | Size preset chips | `#sheetInputs .chips button` |
-| Fold style buttons | `#foldControls button[data-style="bifold"]` |
-| Fold axis buttons | `#foldControls button[data-axis="W"]` |
+| Fold style buttons | `#foldInputs button[data-style="bifold"]` |
+| Fold axis buttons | `#foldInputs button[data-axis="W"]` |
 | Unit toggle | `#unitChips button[data-unit="mm"]` |
 
 ## Expected baseline

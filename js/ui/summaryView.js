@@ -1,14 +1,14 @@
 // summaryView.js — the n-up line, imposed-block details, the no-fit explanation,
 // and (Task 12) the better-orientation hint.
 import { el } from './dom.js';
-import { formatLength } from './format.js';
+import { formatMeasure } from './format.js';
 
 /**
  * @param result    { layout, steps, suggestion }
  * @param options   { unit, hintDismissed, onApply(rotate), onDismiss() }
  */
 export function renderSummary(container, { layout, steps, suggestion }, { unit, hintDismissed, onApply, onDismiss }) {
-  const fmt = (inches) => `${formatLength(inches, unit)} ${unit}`;
+  const fmt = (inches) => `${formatMeasure(inches, unit)} ${unit}`;
   if (!layout.fits) {
     container.replaceChildren(
       el('div', { class: 'nup' }, 'Does not fit'),

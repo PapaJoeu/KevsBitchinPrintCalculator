@@ -1,5 +1,5 @@
-// visualizer.js — the sheet preview: a confirmation glance, not a workspace (spec "Visualizer").
-// fitSheet and canLabel are pure and tested; createVisualizer owns the canvas.
+// sheetView.js — the sheet preview: a confirmation glance, not a workspace (spec "Visualizer").
+// fitSheet and canLabel are pure and tested; createSheetView owns the canvas.
 
 const PALETTE = {
   paper: '#ffffff',
@@ -26,7 +26,7 @@ export function canLabel(docWidthPx, docLengthPx) {
   return docWidthPx >= 26 && docLengthPx >= 16;
 }
 
-export function createVisualizer(canvas) {
+export function createSheetView(canvas) {
   let current = null;
 
   function paint() {

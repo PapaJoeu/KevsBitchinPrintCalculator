@@ -1,4 +1,4 @@
-// inputs.js — one size section: preset chips plus a Custom chip that reveals width/length fields.
+// sizeInputs.js — one size section: preset chips plus a Custom chip that reveals width/length fields.
 import { el } from './dom.js';
 import { parseMeasurement } from '../core/measure.js';
 

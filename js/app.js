@@ -3,22 +3,22 @@ import { computeLayout, suggestOrientation } from './core/layout.js';
 import { computeSequence } from './core/sequence.js';
 import { computeScores } from './core/scores.js';
 import { mmToInches } from './core/measure.js';
-import { PRESETS, DEFAULT_JOB, FOLD_DEFAULTS } from './ui/presets.js';
-import { createSizeInputs } from './ui/inputs.js';
+import { PRESETS, DEFAULTS } from './ui/presets.js';
+import { createSizeInputs } from './ui/sizeInputs.js';
+import { createFoldInputs } from './ui/foldInputs.js';
 import { renderSummary } from './ui/summaryView.js';
 import { renderSequence } from './ui/sequenceView.js';
-import { createVisualizer } from './ui/visualizer.js';
-import { createFoldControls } from './ui/foldControls.js';
 import { renderScores } from './ui/scoresView.js';
+import { createSheetView } from './ui/sheetView.js';
 import { formatShort } from './ui/format.js';
 
 const $ = (id) => document.getElementById(id);
 
-// Sizes live in the current unit exactly as entered; compute() converts to inches.
+// The job is everything the worker entered, in the current unit exactly as typed;
+// compute() converts to inches at the boundary.
 const state = {
   unit: 'in',
-  ...structuredClone(DEFAULT_JOB.in),
-  fold: structuredClone(FOLD_DEFAULTS.in),
+  job: structuredClone(DEFAULTS.in),
   hintDismissed: false,
 };
 
@@ -27,33 +27,32 @@ const sections = {
   doc: createSizeInputs($('docInputs'), { label: 'Document', onChange: (doc) => update({ doc }) }),
   gutter: createSizeInputs($('gutterInputs'), { label: 'Gutter', allowZero: true, onChange: (gutter) => update({ gutter }) }),
 };
-
-const visualizer = createVisualizer($('canvas'));
+const foldInputs = createFoldInputs($('foldInputs'), { onChange: (fold) => update({ fold }) });
+const sheetView = createSheetView($('canvas'));
 const NO_SCORES = { offsets: [], positions: [], segments: [] };
-const foldControls = createFoldControls($('foldControls'), { onChange: (fold) => update({ fold }) });
 
 const toInches = (value) => (state.unit === 'mm' ? mmToInches(value) : value);
 const sizeToInches = (size) => ({ width: toInches(size.width), length: toInches(size.length) });
 
-function compute() {
-  const sheet = sizeToInches(state.sheet);
-  const doc = sizeToInches(state.doc);
-  const gutter = sizeToInches(state.gutter);
+function compute(job) {
+  const sheet = sizeToInches(job.sheet);
+  const doc = sizeToInches(job.doc);
+  const gutter = sizeToInches(job.gutter);
   const layout = computeLayout(sheet, doc, gutter);
   const suggestion = suggestOrientation(sheet, doc, gutter);
   if (!layout.fits) return { layout, suggestion, steps: [], scores: NO_SCORES };
   const fold = {
-    style: state.fold.style,
-    axis: state.fold.axis,
-    allowance: toInches(state.fold.allowance),
-    custom: state.fold.custom.map(toInches),
+    style: job.fold.style,
+    axis: job.fold.axis,
+    allowance: toInches(job.fold.allowance),
+    custom: job.fold.custom.map(toInches),
   };
   return { layout, suggestion, steps: computeSequence(layout), scores: computeScores(layout, fold) };
 }
 
 function render() {
-  const result = compute();
-  foldControls.setDocSize(state.doc);
+  const result = compute(state.job);
+  foldInputs.setDocSize(state.job.doc);
   renderSummary($('summary'), result, {
     unit: state.unit,
     hintDismissed: state.hintDismissed,
@@ -61,23 +60,24 @@ function render() {
     onDismiss: dismissHint,
   });
   renderSequence($('sequence'), result, state.unit);
-  renderScores($('scores'), result, state.fold, state.unit);
-  visualizer.draw(result.layout, result.scores, (inches) => formatShort(inches, state.unit));
+  renderScores($('scores'), result, state.job.fold, state.unit);
+  sheetView.draw(result.layout, result.scores, (inches) => formatShort(inches, state.unit));
   $('legend').hidden = result.scores.segments.length === 0;
 }
 
 /** Apply a validated change to the job. Any change re-arms the orientation hint. */
 function update(patch) {
-  Object.assign(state, patch, { hintDismissed: false });
+  Object.assign(state.job, patch);
+  state.hintDismissed = false;
   render();
 }
 
 /** Turn the sheet or document 90°. An external change, so it is echoed into the section. */
 function applyRotation(which) {
-  // state.fold.axis is deliberately left alone: it names a sheet-relative direction
+  // job.fold.axis is deliberately left alone: it names a sheet-relative direction
   // ('L' along the sheet length, 'W' along the width), not a direction relative to
   // this document, so rotating the document does not change what the axis means.
-  const turned = { width: state[which].length, length: state[which].width };
+  const turned = { width: state.job[which].length, length: state.job[which].width };
   sections[which].setValue(turned);
   update({ [which]: turned });
 }
@@ -89,14 +89,11 @@ function dismissHint() {
 
 /** A new unit is a new job: reset to that unit's defaults (jobs are entered fresh). */
 function setUnit(unit) {
-  Object.assign(state, {
-    unit,
-    ...structuredClone(DEFAULT_JOB[unit]),
-    fold: structuredClone(FOLD_DEFAULTS[unit]),
-    hintDismissed: false,
-  });
-  for (const kind of ['sheet', 'doc', 'gutter']) sections[kind].setPresets(PRESETS[unit][kind], state[kind]);
-  foldControls.setValue(state.fold, unit);
+  state.unit = unit;
+  state.job = structuredClone(DEFAULTS[unit]);
+  state.hintDismissed = false;
+  for (const kind of ['sheet', 'doc', 'gutter']) sections[kind].setPresets(PRESETS[unit][kind], state.job[kind]);
+  foldInputs.setValue(state.job.fold, unit);
   for (const button of $('unitChips').children) {
     button.setAttribute('aria-pressed', String(button.dataset.unit === unit));
   }

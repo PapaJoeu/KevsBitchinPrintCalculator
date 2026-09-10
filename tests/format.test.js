@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatLength, formatShort, unitName, stepNote } from '../js/ui/format.js';
+import { formatMeasure, formatShort, unitName, stepNote } from '../js/ui/format.js';
 
 test('formats inches to three places and millimetres to one', () => {
-  assert.equal(formatLength(17.5625, 'in'), '17.563');
-  assert.equal(formatLength(2, 'in'), '2.000');
-  assert.equal(formatLength(1, 'mm'), '25.4');
-  assert.equal(formatLength(17.5625, 'mm'), '446.1');
+  assert.equal(formatMeasure(17.5625, 'in'), '17.563');
+  assert.equal(formatMeasure(2, 'in'), '2.000');
+  assert.equal(formatMeasure(1, 'mm'), '25.4');
+  assert.equal(formatMeasure(17.5625, 'mm'), '446.1');
 });
 
 test('short format drops trailing zeros but never significant ones', () => {
