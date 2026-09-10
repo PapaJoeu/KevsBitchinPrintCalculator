@@ -5,6 +5,7 @@ import { computeLayout, suggestOrientation } from '../js/core/layout.js';
 const size = (width, length) => ({ width, length });
 const gutter = (columns, rows) => ({ columns, rows });
 const EIGHTH = gutter(0.125, 0.125);
+const SIXTEENTH = { top: 0.0625, bottom: 0.0625, left: 0.0625, right: 0.0625 };
 
 test('business card: 3.5x2 on 12x18 with 1/8" gutters is 3 across x 8 down', () => {
   const layout = computeLayout(size(12, 18), size(3.5, 2), EIGHTH);
@@ -86,4 +87,14 @@ test('suggests turning the sheet when only that helps', () => {
 test('still suggests a turn when nothing fits as entered', () => {
   assert.deepEqual(suggestOrientation(size(8.5, 5.5), size(8.5, 5), gutter(0, 0)), null);
   assert.deepEqual(suggestOrientation(size(12, 6), size(5, 10), gutter(0, 0)), { rotate: 'doc', count: 1 });
+});
+
+test('the non-printable area can change which orientation wins', () => {
+  assert.deepEqual(suggestOrientation(size(12, 18), size(3.5, 2), EIGHTH), { rotate: 'doc', count: 25 });
+  // With 1/16" all round, either turn fits only 20; the 24-up as entered is best.
+  assert.equal(suggestOrientation(size(12, 18), size(3.5, 2), EIGHTH, { npa: SIXTEENTH }), null);
+});
+
+test('a manual count does not distort the comparison: auto counts are compared', () => {
+  assert.deepEqual(suggestOrientation(size(12, 18), size(3.5, 2), EIGHTH, { count: { across: 1 } }), { rotate: 'doc', count: 25 });
 });

@@ -147,22 +147,24 @@ export function computeLayout(sheet, doc, gutter, { npa = NO_NPA, count = {}, al
 
 const turned = ({ width, length }) => ({ width: length, length: width });
 
-function countUp(sheet, doc, gutter) {
-  const { across, down } = computeLayout(sheet, doc, gutter);
-  return across * down;
+function countUp(sheet, doc, gutter, options) {
+  const { auto } = computeLayout(sheet, doc, gutter, options);
+  return auto.across * auto.down;
 }
 
 /**
- * Whether turning the document or the sheet 90° would fit more documents.
+ * Whether turning the document or the sheet 90° would fit more documents, under the
+ * same options. The NPA is sheet-relative and stays on its named edges when the sheet
+ * turns. Auto counts are compared, so a manual count never distorts the answer.
  * Returns null when the entered orientation is already best, otherwise the better
  * turn as { rotate: 'doc' | 'sheet', count }. Ties prefer turning the document,
  * which leaves the sheet as it is fed.
  */
-export function suggestOrientation(sheet, doc, gutter) {
-  const current = countUp(sheet, doc, gutter);
+export function suggestOrientation(sheet, doc, gutter, options = {}) {
+  const current = countUp(sheet, doc, gutter, options);
   const candidates = [
-    { rotate: 'doc', count: countUp(sheet, turned(doc), gutter) },
-    { rotate: 'sheet', count: countUp(turned(sheet), doc, gutter) },
+    { rotate: 'doc', count: countUp(sheet, turned(doc), gutter, options) },
+    { rotate: 'sheet', count: countUp(turned(sheet), doc, gutter, options) },
   ];
   const best = candidates.reduce((a, b) => (b.count > a.count ? b : a));
   return best.count > current ? best : null;
