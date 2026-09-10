@@ -2,8 +2,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PRESETS, DEFAULTS } from '../js/ui/presets.js';
 
-test('12x18 and 13x19 lead the sheet presets', () => {
-  assert.deepEqual(PRESETS.in.sheet.slice(0, 2), [{ width: 12, length: 18 }, { width: 13, length: 19 }]);
+test('the only sheet presets are the two sizes actually run', () => {
+  assert.deepEqual(PRESETS.in.sheet, [{ width: 12, length: 18 }, { width: 13, length: 19 }]);
+  assert.deepEqual(PRESETS.mm.sheet, [{ width: 320, length: 450 }, { width: 297, length: 420 }]);
+});
+
+test('gutter presets carry the label the chip shows', () => {
+  assert.deepEqual(PRESETS.in.gutter.map((g) => g.label), ['⅛"', '¼"', 'None']);
+  assert.deepEqual(PRESETS.mm.gutter.map((g) => g.label), ['3 mm', '5 mm', 'None']);
 });
 
 test('the default job is the business card on 12x18 with 1/8" gutters', () => {
@@ -13,11 +19,12 @@ test('the default job is the business card on 12x18 with 1/8" gutters', () => {
 });
 
 test('every default size is one of its unit presets, so a chip is pressed on open', () => {
+  const valueOf = ({ label, ...rest }) => rest;
   for (const unit of ['in', 'mm']) {
     for (const kind of ['sheet', 'doc', 'gutter']) {
       const value = DEFAULTS[unit][kind];
       assert.ok(
-        PRESETS[unit][kind].some((p) => JSON.stringify(p) === JSON.stringify(value)),
+        PRESETS[unit][kind].some((p) => JSON.stringify(valueOf(p)) === JSON.stringify(value)),
         `${unit} ${kind} default ${JSON.stringify(value)} is not a preset`,
       );
     }

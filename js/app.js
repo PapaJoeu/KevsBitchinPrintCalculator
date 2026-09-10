@@ -27,7 +27,7 @@ const sections = {
   doc: createSizeInputs($('docInputs'), { label: 'Document', onChange: (doc) => update({ doc }) }),
   gutter: createSizeInputs($('gutterInputs'), {
     label: 'Gutter', allowZero: true, keys: ['columns', 'rows'], labels: ['Between columns', 'Between rows'],
-    onChange: (gutter) => update({ gutter }),
+    alwaysShowFields: true, onChange: (gutter) => update({ gutter }),
   }),
 };
 const foldInputs = createFoldInputs($('foldInputs'), { onChange: (fold) => update({ fold }) });
@@ -75,14 +75,12 @@ function update(patch) {
   render();
 }
 
-/** Turn the sheet or document 90°. An external change, so it is echoed into the section. */
+/** Turn the sheet or document 90°. The section swaps its own value and reports it through onChange. */
 function applyRotation(which) {
   // job.fold.axis is deliberately left alone: it names a sheet-relative direction
   // ('L' along the sheet length, 'W' along the width), not a direction relative to
   // this document, so rotating the document does not change what the axis means.
-  const turned = { width: state.job[which].length, length: state.job[which].width };
-  sections[which].setValue(turned);
-  update({ [which]: turned });
+  sections[which].rotate();
 }
 
 function dismissHint() {

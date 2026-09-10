@@ -2,20 +2,19 @@
 // Sizes are { width, length } in the unit they belong to, not inches.
 
 const size = (width, length) => ({ width, length });
-const gutter = (columns, rows) => ({ columns, rows });
+const gutter = (columns, rows, label) => (label ? { columns, rows, label } : { columns, rows });
 
 export const PRESETS = {
   in: {
-    // 12x18 and 13x19 lead: the common digital and small-press sheets (spec "UI").
-    sheet: [size(12, 18), size(13, 19), size(8.5, 11), size(11, 17), size(17, 22), size(18, 24), size(26, 40)],
+    // Only the two sheets actually run (spec "Main inputs"); everything else is Custom.
+    sheet: [size(12, 18), size(13, 19)],
     doc: [size(3.5, 2), size(4.25, 5.5), size(5.5, 8.5), size(8.5, 11), size(11, 17)],
-    gutter: [gutter(0.125, 0.125), gutter(0.25, 0.25), gutter(0, 0)],
+    gutter: [gutter(0.125, 0.125, '⅛"'), gutter(0.25, 0.25, '¼"'), gutter(0, 0, 'None')],
   },
   mm: {
-    // SRA3 leads for the same reason 12x18 does.
-    sheet: [size(320, 450), size(297, 420), size(210, 297), size(420, 594), size(594, 841)],
+    sheet: [size(320, 450), size(297, 420)],
     doc: [size(90, 55), size(105, 148), size(148, 210), size(210, 297), size(297, 420)],
-    gutter: [gutter(3, 3), gutter(5, 5), gutter(0, 0)],
+    gutter: [gutter(3, 3, '3 mm'), gutter(5, 5, '5 mm'), gutter(0, 0, 'None')],
   },
 };
 
