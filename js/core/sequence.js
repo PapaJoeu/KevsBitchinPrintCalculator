@@ -6,7 +6,7 @@
 // lands on the document dimension and is the first gutter trim, so an axis with n documents
 // ends with n cuts at that dimension. Every cut is its own step: the list is keyed
 // into the cutter one step at a time. A margin cut exists on an edge iff that edge's
-// margin is greater than zero.
+// margin is greater than EPSILON.
 
 const EPSILON = 1e-9;
 

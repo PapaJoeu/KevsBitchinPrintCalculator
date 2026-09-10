@@ -23,7 +23,7 @@ then gutter trims at the doc dimension for `k = 2..n`. The loop starts at 2, not
 first gutter trim**. This looks like an off-by-one; it isn't. An axis with one
 document gets no gutter trims, and a zero gutter needs none.
 
-**A margin cut exists on an edge iff that edge's margin is greater than zero.**
+**A margin cut exists on an edge iff that edge's margin is greater than a small tolerance.**
 A block flush to an edge (offset 0) keeps that edge as its reference and gets no
 cut there. Step kinds name what each cut removes: `margin` (with `edge`),
 `strip`, `gutter`.

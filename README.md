@@ -31,3 +31,5 @@ whenever a cached file changes, or phones keep the old build.
 
 - Spec: `docs/superpowers/specs/2026-09-09-mobile-print-calculator-design.md`
 - Plan: `docs/superpowers/plans/2026-09-09-mobile-print-calculator.md`
+- Spec: `docs/superpowers/specs/2026-09-09-advanced-inputs-design.md`
+- Plan: `docs/superpowers/plans/2026-09-09-advanced-inputs.md`

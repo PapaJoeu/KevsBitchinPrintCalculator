@@ -101,11 +101,17 @@ function dismissHint() {
 /** Apply a fix the summary offered. Values arrive in inches; the job holds the current unit. */
 function applyFix(action) {
   const fromInches = (v) => (state.unit === 'mm' ? inchesToMm(v) : v);
+  // Round at the boundary where a converted fix value is about to be merged into
+  // the job: computeLayout's margin subtraction can leave floating-point noise
+  // (e.g. 0.6500000000000018), and without rounding here that noise lands straight
+  // in the editable NPA/offset fields. One extra digit of headroom over display
+  // precision (formatMeasure: 3 decimals in, 1 decimal mm).
+  const round = (v) => Number(v.toFixed(state.unit === 'mm' ? 2 : 4));
   const job = state.job;
   if (action.fix === 'offset') {
-    update({ align: { ...job.align, [action.edge]: fromInches(action.inches) } });
+    update({ align: { ...job.align, [action.edge]: round(fromInches(action.inches)) } });
   } else if (action.fix === 'npa') {
-    const values = Object.fromEntries(Object.entries(action.values).map(([edge, v]) => [edge, fromInches(v)]));
+    const values = Object.fromEntries(Object.entries(action.values).map(([edge, v]) => [edge, round(fromInches(v))]));
     update({ npa: { ...job.npa, ...values } });
   } else if (action.fix === 'count') {
     const count = { ...job.count };

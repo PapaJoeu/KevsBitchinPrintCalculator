@@ -164,9 +164,12 @@ export function createAdvancedInputs(container, { onChange }) {
       value = { npa: { ...next.npa }, count: { ...next.count }, align: { ...next.align } };
       unit = nextUnit;
       defaultNpa = nextDefaultNpa;
-      for (const edge of EDGES) npaInputs[edge].value = String(value.npa[edge]);
-      acrossInput.value = value.count.across ?? '';
-      downInput.value = value.count.down ?? '';
+      // Never rewrite a field the worker is typing in.
+      for (const edge of EDGES) {
+        if (document.activeElement !== npaInputs[edge]) npaInputs[edge].value = String(value.npa[edge]);
+      }
+      if (document.activeElement !== acrossInput) acrossInput.value = value.count.across ?? '';
+      if (document.activeElement !== downInput) downInput.value = value.count.down ?? '';
       hint.hidden = true;
       reflect();
     },
